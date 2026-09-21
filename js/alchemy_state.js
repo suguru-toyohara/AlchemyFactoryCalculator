@@ -138,6 +138,7 @@ function applyChanges() {
                 localStorage.setItem(SOURCE_KEY, txt);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
                 init();
+                break;
             case 'i18n':
             case 'i18n_backup':                
                 translateDatabase(DB, false); // Revert DB item key back the the original key
@@ -145,12 +146,14 @@ function applyChanges() {
                 if (localStorage.getItem(i18nDataKey())) localStorage.setItem(i18nBackupKey(), localStorage.getItem(i18nDataKey()));
                 localStorage.setItem(i18nDataKey(), JSON.stringify(window.ALCHEMY_I18N));
                 location.reload();
+                break;
             case 'settings':
             case 'settings_backup':
                 DB.settings = parsedData;
                 if (localStorage.getItem(SETTINGS_KEY)) localStorage.setItem(SETTINGS_BACKUP_KEY, localStorage.getItem(SETTINGS_KEY));
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(DB.settings));
                 init();
+                break;
         } 
         alert("Applied " + target + " safely!");
     } catch(e) {

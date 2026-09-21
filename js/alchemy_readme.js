@@ -816,7 +816,7 @@ ja: `[EN](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.m
 ゲーム **Alchemy Factory** 向けの、ブラウザで動作する生産計画ツールです。
 任意の生産チェーンについて、原料の消費量、機械の台数、熱/栄養値の負荷、収益性を正確に計算します。
 
-**公開版:** [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator)
+**公開版:** [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)
 
 ---
 
@@ -841,7 +841,7 @@ ja: `[EN](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.m
 ## 🚀 はじめに
 
 #### オンライン
-モダンなブラウザで [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator) を開くだけです。インストールは不要です。
+モダンなブラウザで [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator) を開くだけです。インストールは不要です。
 
 #### ローカル
 1. このリポジトリをダウンロードまたはクローンします。
