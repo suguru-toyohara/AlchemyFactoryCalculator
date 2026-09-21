@@ -17,7 +17,16 @@ function init() {
     if (!window.ALCHEMY_DB) { alert("Error: alchemy_db.js not found!"); }
     if (!window.ALCHEMY_I18N) { alert("Error: alchemy_i18n.js not found!"); }
 
-    const localTranslation = localStorage.getItem(I18N_DATA_KEY);
+    const lang = resolveLanguage(urlLang);
+    window.ALCHEMY_LANG = lang;
+    localStorage.setItem(LANG_KEY, lang);
+    document.documentElement.lang = { ja: 'ja', zh: 'zh-Hans', en: 'en' }[lang];
+    const langSelect = document.getElementById('ui-lang-select');
+    if (langSelect) langSelect.value = lang;
+    // English has no pack: keep the default pack loaded but disabled
+    window.ALCHEMY_I18N = getLanguagePack(lang) ?? getLanguagePack(DEFAULT_LANG);
+
+    const localTranslation = localStorage.getItem(i18nDataKey());
     if (localTranslation) {
         try {
             console.log("Loading local translation data...");
@@ -30,8 +39,7 @@ function init() {
         console.log("Loading remote translation data...");
         window.ALCHEMY_I18N = JSON.parse(JSON.stringify(window.ALCHEMY_I18N));
     }
-    if (urlLang === 'en') window.ALCHEMY_I18N.enabled = false;
-    else ALCHEMY_I18N.enabled = true;
+    window.ALCHEMY_I18N.enabled = (lang !== 'en');
 
     const fileDB = window.ALCHEMY_DB;
     if (localData) {
@@ -148,9 +156,11 @@ function init() {
     
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
-        metaDesc.content = window.ALCHEMY_I18N.enabled ?
-            "游戏《炼金工厂》(Alchemy Factory) 1.0 的生产规划计算器。支持多目标生产树、炼金锅配方搜索、节点图编辑器，百科与数据库编辑。" :
-            "A production planning tool for the game Alchemy Factory 1.0 version. Supports cauldron recipes, multi-targets production trees, node graph editor, wiki, and database editing";
+        metaDesc.content = {
+            zh: "游戏《炼金工厂》(Alchemy Factory) 1.0 的生产规划计算器。支持多目标生产树、炼金锅配方搜索、节点图编辑器，百科与数据库编辑。",
+            ja: "ゲーム「Alchemy Factory」1.0 向けの生産計画計算ツール。複数目標の生産ツリー、錬金釜レシピ検索、ノードグラフエディタ、図鑑、データベース編集に対応。",
+            en: "A production planning tool for the game Alchemy Factory 1.0 version. Supports cauldron recipes, multi-targets production trees, node graph editor, wiki, and database editing"
+        }[lang];
     }
 }
 
@@ -287,21 +297,27 @@ function translateText() {
     document.title = t("Alchemy Factory Calculator", "ui");
 }
 
-function toggleLanguage() {
-    if (window.ALCHEMY_I18N.enabled === undefined) window.ALCHEMY_I18N.enabled = true;
-    window.ALCHEMY_I18N.enabled = !window.ALCHEMY_I18N.enabled;
+function setLanguage(lang) {
+    if (!SUPPORTED_LANGS.includes(lang) || lang === getCurrentLang()) return;
     const url = new URL(window.location.href);
-    if (!window.ALCHEMY_I18N.enabled) url.searchParams.set('lang', 'en');
-    else url.searchParams.delete('lang');
+    if (lang === DEFAULT_LANG) url.searchParams.delete('lang');
+    else url.searchParams.set('lang', lang);
+    localStorage.setItem(LANG_KEY, lang);
 
-    // --- translate the 'item' param to match the new language ---
+    // --- translate item names to match the new language ---
+    const newPack = getLanguagePack(lang);
+    const toNewLang = (name) => {
+        if (!name) return name;
+        const originName = toEnglishItemName(name);
+        return newPack?.items?.[originName] ?? originName;
+    };
     const itemParam = url.searchParams.get('item');
     if (itemParam) {
-        url.searchParams.set('item', queryDualItemName(itemParam));
+        url.searchParams.set('item', toNewLang(itemParam));
     }
-    DB.settings.targetItem  = queryDualItemName(DB.settings.targetItem);
-    DB.settings.defaultFuel = queryDualItemName(DB.settings.defaultFuel);
-    DB.settings.defaultFert = queryDualItemName(DB.settings.defaultFert);
+    DB.settings.targetItem  = toNewLang(DB.settings.targetItem);
+    DB.settings.defaultFuel = toNewLang(DB.settings.defaultFuel);
+    DB.settings.defaultFert = toNewLang(DB.settings.defaultFert);
     saveSettings();
     
     window.location.href = url.toString();
@@ -347,9 +363,8 @@ function switchTab(tabName, updateUrl = true) {
 }
 
 function updateURL(tabName = '') {
-    const isEn = window.ALCHEMY_I18N.enabled === false;    
     const params = new URLSearchParams();
-    if (isEn) params.set('lang', 'en');
+    if (getCurrentLang() !== DEFAULT_LANG) params.set('lang', getCurrentLang());
 
     if (tabName !== '' && tabName !== 'calc') {
         params.set('tab', tabName);        

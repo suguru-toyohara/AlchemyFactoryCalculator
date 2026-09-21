@@ -10,16 +10,62 @@ function t(text, category = 'ui') {
     return translatedText ?? text;
 }
 
-// Input item name, return the translated item name. And vice versice
+/* --------------------------------------------------------------------------
+   LANGUAGE PACKS
+   English is the key language (no pack). Every other language is a pack with the
+   same shape as window.ALCHEMY_I18N. window.ALCHEMY_I18N always points at the
+   ACTIVE pack (init() in alchemy_main.js picks it); `enabled === false` means English.
+   -------------------------------------------------------------------------- */
+const SUPPORTED_LANGS = ['ja', 'en', 'zh'];
+const DEFAULT_LANG = 'ja';
+const LANG_KEY = "alchemy_lang_v1";
+
+function getLanguagePack(lang) {
+    if (lang === 'zh') return window.ALCHEMY_I18N_ZH;
+    if (lang === 'ja') return window.ALCHEMY_I18N_JA;
+    return null;
+}
+
+function getCurrentLang() {
+    return window.ALCHEMY_LANG || DEFAULT_LANG;
+}
+
+/** url param > last used language > DEFAULT_LANG */
+function resolveLanguage(urlLang) {
+    if (SUPPORTED_LANGS.includes(urlLang)) return urlLang;
+    let saved = null;
+    try { saved = localStorage.getItem(LANG_KEY); } catch (e) { /* ignore */ }
+    return SUPPORTED_LANGS.includes(saved) ? saved : DEFAULT_LANG;
+}
+
+// Item name in ANY language -> English key. Saved data (settings, planner edges, cauldron
+// favorites) holds names in whatever language was active when it was written.
+let _itemNameToEnglish = null;
+function toEnglishItemName(itemName) {
+    if (!itemName) return itemName;
+    if (!_itemNameToEnglish) {
+        _itemNameToEnglish = new Map();
+        [window.ALCHEMY_I18N, window.ALCHEMY_I18N_JA, window.ALCHEMY_I18N_ZH].forEach(pack => {
+            if (!pack || !pack.items) return;
+            for (const [originalName, translated] of Object.entries(pack.items)) {
+                if (!_itemNameToEnglish.has(translated)) _itemNameToEnglish.set(translated, originalName);
+            }
+        });
+    }
+    const i18n = window.ALCHEMY_I18N;
+    if (i18n && i18n.items && i18n.items[itemName] !== undefined) return itemName; // already English
+    return _itemNameToEnglish.get(itemName) ?? itemName;
+}
+
+// Input an item name that is not valid in the current language, return the current-language name.
+// (Input a current-language name, return the English name.)
 function queryDualItemName(itemName) {
     const i18n = window.ALCHEMY_I18N;
     if (!i18n || !i18n.items) return "";
-    const translatedText = i18n.items[itemName];
-    if (translatedText) return translatedText;
-    for (const [originalName, nameInDb] of Object.entries(i18n.items)) {
-        if (nameInDb === itemName) return originalName;
-    }
-    return "";
+    const originName = toEnglishItemName(itemName);
+    const currentName = getCurrentItemName(originName);
+    if (currentName !== itemName) return currentName;
+    return originName !== itemName ? originName : "";
 }
 
 function getCurrentItemName(originName) {
@@ -31,25 +77,18 @@ function getCurrentItemName(originName) {
 function translateDatabase(db, forward) {
     const i18n = window.ALCHEMY_I18N;
     if (!db || !i18n || !i18n.items) return;
-    if (i18n.enabled === false) return;
 
-    const item2translate = new Map();
-    const translate2item = new Map();
-    for (let key in i18n.items) {
-        const value = i18n.items[key];
-        item2translate.set(key, value);
-        translate2item.set(value, key);
-    }
-    const forwardMap = forward ? item2translate : translate2item;
-    const invertedMap = forward ? translate2item : item2translate;
+    const toTranslated = (forward && i18n.enabled !== false) ? i18n.items : null;
     const missingKeys = new Set();
 
     const getT = (str) => {
-        if (!str) return str; 
-        const translated = forwardMap.get(str);
+        if (!str) return str;
+        const originName = toEnglishItemName(str);
+        if (!toTranslated) return originName;
+        const translated = toTranslated[originName];
         if (translated === undefined) {
-            if (!invertedMap.has(str)) missingKeys.add(str);
-            return str;
+            missingKeys.add(str);
+            return originName;
         }
         return translated;
     };
@@ -786,3 +825,4 @@ window.ALCHEMY_I18N = {
         "[All]": "[ 全部 ]", "[Include]": "[ 选取 ]", "[Exclude]": "[ 排除 ]", "[Product]": "[ 产物 ]"
     }
 };
+window.ALCHEMY_I18N_ZH = window.ALCHEMY_I18N;

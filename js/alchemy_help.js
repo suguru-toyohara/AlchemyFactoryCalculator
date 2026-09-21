@@ -1059,16 +1059,19 @@ function _renderMachineDetail(machineName) {
 }
 
 /* ─── README / 完整說明 ─── */
-var _readmeCache = { en: null, zh: null };
+var _readmeCache = { en: null, zh: null, ja: null };
 var _readmeScrollContainer = null;
 var _readmeScrollHandler = null;
 
 function _currentReadmeLang() {
-    return (window.ALCHEMY_I18N && window.ALCHEMY_I18N.enabled === false) ? 'en' : 'zh';
+    var lang = getCurrentLang();
+    // Fall back to English until a translated README is embedded for this language
+    if (lang !== 'en' && !(window.ALCHEMY_README && window.ALCHEMY_README[lang])) return 'en';
+    return lang;
 }
 
 function _readmeUrlForLang(lang) {
-    return lang === 'zh' ? 'README.zh-CN.md' : 'README.md';
+    return lang === 'zh' ? 'README.zh-CN.md' : (lang === 'ja' ? 'README.ja.md' : 'README.md');
 }
 
 function _buildReadmeAreaHTML() {
@@ -1215,7 +1218,7 @@ function _slugify(rawText) {
     var s = rawText
         .replace(/[`*[\]()]/g, '')
         .trim().toLowerCase()
-        .replace(/[^\w\u4e00-\u9fff]+/g, '-')
+        .replace(/[^\w\u3040-\u30ff\u4e00-\u9fff]+/g, '-')
         .replace(/^-+|-+$/g, '');
     if (!s) s = 'section';
     var count = _readmeSlugCounts[s] || 0;

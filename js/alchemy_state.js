@@ -7,6 +7,10 @@ const SOURCE_KEY = "alchemy_source_v1";
 const BACKUP_KEY = "alchemy_source_backup_v1";
 const I18N_DATA_KEY = "alchemy_i18n_source_v1";
 const I18N_BACKUP_KEY = "alchemy_i18n_source_backup_v1";
+// User-edited translation is stored per language (zh keeps the original keys)
+function _i18nPackLang() { return getCurrentLang() === 'en' ? DEFAULT_LANG : getCurrentLang(); } // English shares the default pack
+function i18nDataKey() { const lang = _i18nPackLang(); return (lang === 'zh') ? I18N_DATA_KEY : I18N_DATA_KEY + '_' + lang; }
+function i18nBackupKey() { const lang = _i18nPackLang(); return (lang === 'zh') ? I18N_BACKUP_KEY : I18N_BACKUP_KEY + '_' + lang; }
 const SETTINGS_KEY = "alchemy_settings_v1";
 const SETTINGS_BACKUP_KEY = "alchemy_settings_backup_v1";
 
@@ -80,6 +84,9 @@ const DEFAULT_SETTINGS = {
         ">铜币": "Copper Coin",
         ">银币": "Silver Coin",
         ">金币": "Gold Coin",
+        ">銅貨": "Copper Coin",
+        ">銀貨": "Silver Coin",
+        ">金貨": "Gold Coin",
     },
     recipeModifiers: {},
     activeRecyclers: {},
@@ -105,7 +112,7 @@ function loadEditorContent() {
         case 'db': editor.value = localStorage.getItem(SOURCE_KEY) ?? JSON.stringify(DB, null, 2); break;
         case 'db_backup': editor.value = localStorage.getItem(BACKUP_KEY) ?? ""; break;
         case 'i18n': editor.value = JSON.stringify(window.ALCHEMY_I18N, null, 2); break;
-        case 'i18n_backup': editor.value = localStorage.getItem(I18N_BACKUP_KEY) ?? ""; break;
+        case 'i18n_backup': editor.value = localStorage.getItem(i18nBackupKey()) ?? ""; break;
         case 'settings': editor.value = JSON.stringify(DB.settings, null, 2); break;
         case 'settings_backup': editor.value = localStorage.getItem(SETTINGS_BACKUP_KEY) ?? ""; break;
     }
@@ -135,8 +142,8 @@ function applyChanges() {
             case 'i18n_backup':                
                 translateDatabase(DB, false); // Revert DB item key back the the original key
                 window.ALCHEMY_I18N = parsedData;
-                if (localStorage.getItem(I18N_DATA_KEY)) localStorage.setItem(I18N_BACKUP_KEY, localStorage.getItem(I18N_DATA_KEY));
-                localStorage.setItem(I18N_DATA_KEY, JSON.stringify(window.ALCHEMY_I18N));
+                if (localStorage.getItem(i18nDataKey())) localStorage.setItem(i18nBackupKey(), localStorage.getItem(i18nDataKey()));
+                localStorage.setItem(i18nDataKey(), JSON.stringify(window.ALCHEMY_I18N));
                 location.reload();
             case 'settings':
             case 'settings_backup':
@@ -183,9 +190,9 @@ function resetRecips() {
 function resetTranslations() {
     if(confirm(t('Reset Translations', 'ui') + "?")) {
         console.log("Reset Translations");
-        const localSourceI18NData = localStorage.getItem(I18N_DATA_KEY);
-        localStorage.removeItem(I18N_DATA_KEY);
-        if (localSourceI18NData) localStorage.setItem(I18N_BACKUP_KEY, localSourceI18NData);
+        const localSourceI18NData = localStorage.getItem(i18nDataKey());
+        localStorage.removeItem(i18nDataKey());
+        if (localSourceI18NData) localStorage.setItem(i18nBackupKey(), localSourceI18NData);
         location.reload();
     } 
 }
@@ -194,11 +201,13 @@ function resetAllData() {
     if(confirm(t('Reset All Database?', 'ui'))) {
         console.log("Reset All Database");
         const localSourceData = localStorage.getItem(SOURCE_KEY);
-        const localSourceI18NData = localStorage.getItem(I18N_DATA_KEY);
+        const localSourceI18NData = localStorage.getItem(i18nDataKey());
+        const currentLang = getCurrentLang();
         const localSettingsData = localStorage.getItem(SETTINGS_KEY);
         localStorage.clear();
         if (localSourceData) localStorage.setItem(BACKUP_KEY, localSourceData);
-        if (localSourceI18NData) localStorage.setItem(I18N_BACKUP_KEY, localSourceI18NData);
+        localStorage.setItem(LANG_KEY, currentLang);
+        if (localSourceI18NData) localStorage.setItem(i18nBackupKey(), localSourceI18NData);
         if (localSettingsData) localStorage.setItem(SETTINGS_BACKUP_KEY, localSettingsData);
         location.reload();
     } 
