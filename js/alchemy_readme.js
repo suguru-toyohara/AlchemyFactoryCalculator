@@ -12,7 +12,7 @@ en: `[EN](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.m
 A browser-based production planning tool for the game **Alchemy Factory**.
 Precisely calculates raw material consumption, machine counts, heat/nutrient loads, and profitability for any production chain.
 
-**Live version:** [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator)
+**Live version:** [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)
 
 ---
 
@@ -37,7 +37,7 @@ Precisely calculates raw material consumption, machine counts, heat/nutrient loa
 ## 🚀 Getting Started
 
 #### Online
-Open [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator) in any modern browser. No installation required.
+Open [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator) in any modern browser. No installation required.
 
 #### Local
 1. Download or clone this repository.
@@ -403,7 +403,7 @@ No build tools, bundlers, or external dependencies. Pure HTML + CSS + vanilla Ja
 
 ---
 
-*This calculator is a fork of the original [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) by JoeJoesGit, with added Chinese localization, the Cauldron Calculator, the Wiki, the Planner, incremental database update notifications, and various UI enhancements.*  
+*This calculator is a fork of [AlchemyFactoryCalculator](https://github.com/starfi5h/AlchemyFactoryCalculator) by starfi5h, maintained by [suguru-toyohara](https://github.com/suguru-toyohara) with added Japanese localization and additional features. The starfi5h version is itself a fork of the original [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) by JoeJoesGit, with added Chinese localization, the Cauldron Calculator, the Wiki, the Planner, incremental database update notifications, and various UI enhancements.*  
 *The data is from [AlchemyFactoryData](https://github.com/faultyd3v/AlchemyFactoryData) by faultyd3v.*  
 `,
 
@@ -414,7 +414,7 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 专为游戏 **《炼金工厂》(Alchemy Factory)** 打造的浏览器端生产规划工具。
 可精确计算任意生产链的原料消耗、机器数量、热值/肥力负载与利润。
 
-**在线使用：** [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator)
+**在线使用：** [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)
 
 ---
 
@@ -439,7 +439,7 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 ## 🚀 快速开始
 
 #### 在线使用
-在任意现代浏览器中打开 [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator)，无需安装。
+在任意现代浏览器中打开 [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)，无需安装。
 
 #### 本地使用
 1. 下载或克隆本仓库。
@@ -805,7 +805,7 @@ AlchemyFactoryCalculator/
 
 ---
 
-*本计算器 Fork 自原作者 JoeJoesGit 的 [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/)，新增了中文本地化、炼金锅计算器、百科、规划器、数据库版本更新提醒以及多项界面改进。*
+*本计算器由 [suguru-toyohara](https://github.com/suguru-toyohara) Fork 自 starfi5h 的 [AlchemyFactoryCalculator](https://github.com/starfi5h/AlchemyFactoryCalculator)，新增了日文本地化及自定义功能。starfi5h 版本 Fork 自原作者 JoeJoesGit 的 [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/)，新增了中文本地化、炼金锅计算器、百科、规划器、数据库版本更新提醒以及多项界面改进。*  
 *数据来源于 faultyd3v 的 [AlchemyFactoryData](https://github.com/faultyd3v/AlchemyFactoryData)。*  
 `,
 

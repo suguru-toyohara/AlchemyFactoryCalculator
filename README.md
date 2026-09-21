@@ -5,7 +5,7 @@
 A browser-based production planning tool for the game **Alchemy Factory**.
 Precisely calculates raw material consumption, machine counts, heat/nutrient loads, and profitability for any production chain.
 
-**Live version:** [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator)
+**Live version:** [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)
 
 ---
 
@@ -30,7 +30,7 @@ Precisely calculates raw material consumption, machine counts, heat/nutrient loa
 ## 🚀 Getting Started
 
 #### Online
-Open [https://starfi5h.github.io/AlchemyFactoryCalculator](https://starfi5h.github.io/AlchemyFactoryCalculator) in any modern browser. No installation required.
+Open [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator) in any modern browser. No installation required.
 
 #### Local
 1. Download or clone this repository.
@@ -398,4 +398,4 @@ No build tools, bundlers, or external dependencies. Pure HTML + CSS + vanilla Ja
 
 ---
 
-*This calculator is a fork of the original [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) by JoeJoesGit, with added Chinese localization, the Cauldron Calculator, the Wiki, the Planner, incremental database update notifications, and various UI enhancements.*  
+*This calculator is a fork of [AlchemyFactoryCalculator](https://github.com/starfi5h/AlchemyFactoryCalculator) by starfi5h, maintained by [suguru-toyohara](https://github.com/suguru-toyohara) with added Japanese localization and additional features. The starfi5h version is itself a fork of the original [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) by JoeJoesGit, with added Chinese localization, the Cauldron Calculator, the Wiki, the Planner, incremental database update notifications, and various UI enhancements.*  
