@@ -1209,7 +1209,7 @@ AlchemyFactoryCalculator/
 
 ---
 
-*この計算機は、JoeJoesGit 氏によるオリジナルの [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) のフォークであり、中国語ローカライズ、錬金釜計算機、Wiki、プランナー、データベースの差分更新通知、各種 UI の改善を追加しています。*  
+*この計算機は、[suguru-toyohara](https://github.com/suguru-toyohara) が starfi5h 氏の [AlchemyFactoryCalculator](https://github.com/starfi5h/AlchemyFactoryCalculator) をフォークし、日本語ローカライズと独自の機能追加を行っているものです。starfi5h 氏版は、JoeJoesGit 氏によるオリジナルの [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) をフォークし、中国語ローカライズ、錬金釜計算機、Wiki、プランナー、データベースの差分更新通知、各種 UI の改善を追加したものです。*  
 `
 
 };
