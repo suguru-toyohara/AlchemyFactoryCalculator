@@ -1409,7 +1409,72 @@ function _plannerEdgeCtrl(p, other, sign) {
     return { x: p.x + dx * sign, y: p.y };
 }
 
+/**
+ * Dock edges (fuel / fertilizer / steam) are drawn as right-angled "pipes" instead of curves:
+ * out of the source port horizontally → vertical run → along the row under the target card → up into the socket.
+ * Returns { d, mid, points } where points is the polyline (also used for chevrons).
+ */
+function buildPlannerDockPipePath(p1, p2, sign1 = 1) {
+    const DROP = 26;      // how far below the socket the pipe runs before turning up
+    const MIN_STUB = 20;  // shortest horizontal leg out of the source port
+    const R = 6;          // corner radius
+    let pts;
+    if (p1.y >= p2.y + DROP && (p2.x - p1.x) * sign1 >= MIN_STUB) {
+        // socket is above the source port and ahead of it: a plain L — straight across, then straight up into the socket
+        pts = [p1, { x: p2.x, y: p1.y }, p2];
+    } else {
+        // otherwise: across to the midway column, down to the run level under the socket, across, then up
+        const ahead = (p2.x - p1.x) * sign1 >= MIN_STUB * 2;
+        const xTurn = ahead ? (p1.x + p2.x) / 2 : p1.x + MIN_STUB * sign1;
+        const yRun = Math.max(p2.y, p1.y) + DROP;
+        pts = [p1, { x: xTurn, y: p1.y }, { x: xTurn, y: yRun }, { x: p2.x, y: yRun }, p2];
+    }
+    // dedupe consecutive equal points
+    const points = pts.filter((pt, i) => i === 0 || Math.abs(pt.x - pts[i - 1].x) > 0.01 || Math.abs(pt.y - pts[i - 1].y) > 0.01);
+
+    // rounded-corner path
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length - 1; i++) {
+        const prev = points[i - 1], cur = points[i], next = points[i + 1];
+        const l1 = Math.hypot(cur.x - prev.x, cur.y - prev.y), l2 = Math.hypot(next.x - cur.x, next.y - cur.y);
+        const r = Math.min(R, l1 / 2, l2 / 2);
+        const a = { x: cur.x - (cur.x - prev.x) / l1 * r, y: cur.y - (cur.y - prev.y) / l1 * r };
+        const b = { x: cur.x + (next.x - cur.x) / l2 * r, y: cur.y + (next.y - cur.y) / l2 * r };
+        d += ` L ${a.x} ${a.y} Q ${cur.x} ${cur.y} ${b.x} ${b.y}`;
+    }
+    const last = points[points.length - 1];
+    d += ` L ${last.x} ${last.y}`;
+
+    // label anchor: middle of the polyline by length
+    let total = 0; const segs = [];
+    for (let i = 1; i < points.length; i++) { const l = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y); segs.push(l); total += l; }
+    let acc = 0, mid = points[0];
+    for (let i = 0; i < segs.length; i++) {
+        if (acc + segs[i] >= total / 2) { const f = (total / 2 - acc) / (segs[i] || 1); mid = { x: points[i].x + (points[i + 1].x - points[i].x) * f, y: points[i].y + (points[i + 1].y - points[i].y) * f }; break; }
+        acc += segs[i];
+    }
+    return { d, mid, points };
+}
+
+/** Chevrons along a polyline at fixed spacing (dock pipes). */
+function _plannerBuildPolylineChevronPath(points, spacing = 9, size = 5) {
+    const half = size / 2;
+    let d = '', carry = spacing * 0.5;
+    for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1], b = points[i];
+        const len = Math.hypot(b.x - a.x, b.y - a.y); if (len < 0.01) continue;
+        const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, px = -uy, py = ux;
+        for (let s = carry; s < len; s += spacing) {
+            const x = a.x + ux * s, y = a.y + uy * s;
+            d += `M${(x - ux * half + px * half).toFixed(1)} ${(y - uy * half + py * half).toFixed(1)}L${(x + ux * half).toFixed(1)} ${(y + uy * half).toFixed(1)}L${(x - ux * half - px * half).toFixed(1)} ${(y - uy * half - py * half).toFixed(1)}`;
+        }
+        carry = ((carry - len) % spacing + spacing) % spacing;
+    }
+    return d;
+}
+
 function buildPlannerEdgePath(p1, p2, sign1 = 1, sign2 = -1) {
+    if (p2.dock) return buildPlannerDockPipePath(p1, p2, sign1);
     const c1 = _plannerEdgeCtrl(p1, p2, sign1);
     const c2 = _plannerEdgeCtrl(p2, p1, sign2);
     const d = `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
@@ -1511,12 +1576,14 @@ function renderPlannerEdges(flows) {
 
         const flow = flows.edgeFlow[edge.id] || 0;
         const itemDef = DB.items[edge.item] || {};
-        const { d, mid, c1, c2 } = buildPlannerEdgePath(p1, p2, sign1, sign2);
+        const { d, mid, c1, c2, points } = buildPlannerEdgePath(p1, p2, sign1, sign2);
+        const isPipe = !!points;
 
         // 依目前模式，產生對應的線條 path
+        const chevronD = isPipe ? _plannerBuildPolylineChevronPath(points, 9, 5) : _plannerBuildChevronPath(p1, c1, c2, p2, 9, 5);
         const linePathHtml = useChevron
-            ? `<path class="planner-edge-chevrons" d="${_plannerBuildChevronPath(p1, c1, c2, p2, 9, 5)}"></path>`
-            : `<path class="planner-edge-line" d="${d}"></path>`;
+            ? `<path class="planner-edge-chevrons" d="${chevronD}"></path>`
+            : `<path class="planner-edge-line${isPipe ? ' planner-edge-pipe' : ''}" d="${d}"></path>`;
 
         const beltCount = !itemDef.liquid ? (flow / beltSpeed) : null;
         // edge.color 現在放在 group 的 color 上，由 stroke: currentColor 吃色
