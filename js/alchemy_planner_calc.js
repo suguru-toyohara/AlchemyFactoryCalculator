@@ -66,11 +66,13 @@ function plannerMainOutput(recipeId) {
     return r ? Object.keys(r.outputs)[0] : null;
 }
 
-function plannerGetRecipeTime(recipe) {
+/** Nursery batch time is limited by the fertilizer's max fertility (V/s): time = nutrientCost / maxFertility.
+ *  e.g. Sage (36 V) on Basic Fertilizer (12 V/s) = 3 s. World Tree machines are not capped. */
+function plannerGetRecipeTime(recipe, fertName = DB.settings.defaultFert) {
     let recipeTime = recipe.baseTime || 1;
     const nutrientCost = recipe.nutrientCost || 0;
     if (nutrientCost > 0 && recipe.machine === "Nursery") {
-        const fertSpeed = DB.items[DB.settings.defaultFert]?.maxFertility || 1;
+        const fertSpeed = DB.items[fertName]?.maxFertility || 1;
         recipeTime = nutrientCost / fertSpeed;
     }
     return recipeTime;
@@ -165,7 +167,7 @@ function plannerGetRecipeRates(recipeId, recipeModifiers, nodeOpts = null) {
     const speedMult = getSpeedMult(lvlSpeed);
     const alchemyMult = getAlchemyMult(lvlAlchemy);
 
-    const recipeTime = plannerGetRecipeTime(recipe);    
+    const recipeTime = plannerGetRecipeTime(recipe, plannerGetNodeFert(nodeOpts));
     const mainOut = Object.keys(recipe.outputs)[0];
     const nutrientCost = recipe.nutrientCost || 0;  
 
