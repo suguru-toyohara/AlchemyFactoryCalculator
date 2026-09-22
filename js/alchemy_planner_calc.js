@@ -695,8 +695,9 @@ function autoGenerateAllUpstreamNodes(rootNodeId) {
     _plannerSelectedNodeIds.add(rootNodeId);
     allCreated.forEach(id => _plannerSelectedNodeIds.add(id));
 
-    renderPlanner();
-    savePlannerState();
+    renderPlanner(); // node heights must exist in the DOM before the layout measures them
+    if (allCreated.length > 0) plannerAutoLayoutUpstream(rootNodeId); // renders + saves
+    else savePlannerState();
 }
 
 /** 選取 rootNodeId 本身 + 所有上游節點 (沿 input edge 反向走的全部祖先)，加入目前選取集合並重繪 */
