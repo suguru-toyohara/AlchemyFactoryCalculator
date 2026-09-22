@@ -97,13 +97,21 @@ function plannerGetRecipeTime(recipe) {
    -------------------------------------------------------------------------- */
 function plannerSteamItemName() { return getCurrentItemName('Steam'); }
 
-/** Per-node heating device, falling back to the global Calculator setting. */
-function plannerGetNodeHeatingDevice(node) {
+/** Machines that produce steam can't be heated by steam (it would be a loop); they always sit on a furnace. */
+function plannerMachineForbidsSteamHeating(machineName) {
+    return DB.recipes.some(r => r.machine === machineName && Object.keys(r.outputs || {}).some(o => toEnglishItemName(o) === 'Steam'));
+}
+
+/** Per-node heating device, falling back to the global Calculator setting.
+ *  `machineName` (optional) lets steam producers refuse the Steam Heating Pad and fall back to the Stone Furnace. */
+function plannerGetNodeHeatingDevice(node, machineName = null) {
+    const fallback = DB.machines["Stone Furnace"];
+    const stone = fallback ? { name: "Stone Furnace", def: fallback } : { name: "Stone Furnace", def: { heatSelf: 0, slots: 3 } };
     const name = node?.heatingDevice || DB.settings.selectedHeatingDevice || "Stone Furnace";
     const def = DB.machines[name];
-    if (def?.isGenerator) return { name, def };
-    const fallback = DB.machines["Stone Furnace"];
-    return fallback ? { name: "Stone Furnace", def: fallback } : { name, def: { heatSelf: 0, slots: 3 } };
+    if (!def?.isGenerator) return stone;
+    if (def.steamHeated && machineName && plannerMachineForbidsSteamHeating(machineName)) return stone;
+    return { name, def };
 }
 
 /** Per-node fuel / fertilizer item (current-language name), falling back to the global setting. */
@@ -195,7 +203,7 @@ function plannerGetRecipeRates(recipeId, recipeModifiers, nodeOpts = null) {
     let steamPerMachine = 0;
     const machineDef = DB.machines[recipe.machine];
     if (machineDef && machineDef.heatCost) {
-        const heatingDevice = plannerGetNodeHeatingDevice(nodeOpts).def;
+        const heatingDevice = plannerGetNodeHeatingDevice(nodeOpts, recipe.machine).def;
         const slotsRequired = machineDef.slotsRequired || 1;
         const heatingSlots = heatingDevice.slots || 3;
         let activeHeat = machineDef.heatCost * speedMult;

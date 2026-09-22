@@ -547,15 +547,16 @@ function _buildPlannerNodeHeatingDeviceHtml(node, rawRecipe) {
     let html = '';
 
     if (needsHeat) {
-        const globalName = DB.settings.selectedHeatingDevice || "Stone Furnace";
+        const noSteam = plannerMachineForbidsSteamHeating(rawRecipe.machine); // e.g. Steam Boiler: steam-heating itself would loop
+        const globalName = plannerGetNodeHeatingDevice({}, rawRecipe.machine).name;
         const options = Object.entries(DB.machines)
-            .filter(([, def]) => def.isGenerator)
+            .filter(([, def]) => def.isGenerator && !(noSteam && def.steamHeated))
             .map(([name]) => `<option value="${name}"${node.heatingDevice === name ? ' selected' : ''}>${t(name, 'machines')}</option>`)
             .join('');
         html += row(t('Heating Device'), `<select style="flex:1; padding:3px 6px; font-size:0.9em;" onchange="plannerSetNodeHeatingDevice('${node.id}', this.value)">
                 ${followOpt(t(globalName, 'machines'), !node.heatingDevice)}${options}</select>`);
 
-        if (!plannerGetNodeHeatingDevice(node).def.steamHeated) {
+        if (!plannerGetNodeHeatingDevice(node, rawRecipe.machine).def.steamHeated) {
             const options = plannerGetFuelOptions()
                 .map(o => `<option value="${_escapeHtml(toEnglishItemName(o.name))}"${node.fuel === toEnglishItemName(o.name) ? ' selected' : ''}>${_escapeHtml(o.name)} (${o.value} ${o.unit})</option>`)
                 .join('');
