@@ -211,6 +211,16 @@ function loadPlannerLibrary() {
         plannerLibrary.activePlanId = plannerLibrary.planOrder[0];
     }
 
+    // Modules are plans flagged isModule (kept out of the plan list, offered in the node picker).
+    // Migration: any plan referenced by a module node becomes a module.
+    Object.values(plannerLibrary.plans).forEach(plan => {
+        Object.values(plan.data?.nodes || {}).forEach(node => {
+            if (node.moduleId && plannerLibrary.plans[node.moduleId] && !plannerLibrary.plans[node.moduleId].isModule) {
+                plannerLibrary.plans[node.moduleId].isModule = true;
+            }
+        });
+    });
+
     // 遷移每個 plan 中，邊(edge)所記錄的物品名稱(中/英轉換)
     Object.values(plannerLibrary.plans).forEach(plan => {
         Object.values(plan.data.nodes || {}).forEach(node => {
@@ -741,15 +751,38 @@ function onPlannerCanvasContextMenu(e) {
 
 function openPlannerItemPicker(graphX, graphY, kind) {
     const originalSelectItem = window.selectItem;
+    const originalSelectModule = window.selectPlannerModule;
     window.selectItem = (name) => {
         window.selectItem = originalSelectItem;
+        window.selectPlannerModule = originalSelectModule;
         if (kind === 'recipe' && getRecipesFor(name).length === 0) {
             alert(t('This item has no recipe and cannot be added as a Planner node.', 'ui'));
             return;
         }
         addPlannerNode(name, graphX, graphY, kind);
     };
+    // recipe picker also lists the user's modules (see renderItemPicker's module category)
+    window.selectPlannerModule = kind === 'recipe' ? (moduleId) => {
+        window.selectItem = originalSelectItem;
+        window.selectPlannerModule = originalSelectModule;
+        addPlannerModuleNode(moduleId, graphX, graphY);
+    } : null;
     openItemPicker();
+}
+
+/** Place a module (a plan flagged isModule) as a node */
+function addPlannerModuleNode(moduleId, graphX, graphY) {
+    if (!plannerLibrary.plans[moduleId] || moduleId === plannerLibrary.activePlanId) return;
+    plannerState._nodeSeq = (plannerState._nodeSeq || 0) + 1;
+    const id = 'pnode_' + plannerState._nodeSeq;
+    plannerState.nodes[id] = { id, kind: 'module', recipeId: null, moduleId, machineCount: 1, x: Math.round(graphX), y: Math.round(graphY) };
+    renderPlanner();
+    savePlannerState();
+}
+
+/** Plans / modules split, in planOrder */
+function plannerGetPlanIds(modules = false) {
+    return plannerLibrary.planOrder.filter(id => plannerLibrary.plans[id] && !!plannerLibrary.plans[id].isModule === modules);
 }
 
 function addPlannerNode(itemName, graphX, graphY, kind = 'recipe') {

@@ -1218,6 +1218,7 @@ function encapsulatePlannerSelectedNodes() {
 
     // 4. 建立新 plan，搬移節點 + internal edges (深拷貝)
     const newPlan = _createPlan(planName);
+    newPlan.isModule = true;
     newPlan.data.nodes = {};
     selectedIds.forEach(id => {
         const node = plannerState.nodes[id];

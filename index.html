@@ -121,7 +121,8 @@
                     <button class="split-btn" onclick="managePlannerLoadSelected()">▶ Load</button>
                     <button class="split-btn" onclick="managePlannerRenameSelected()">✎ Rename</button>
                     <button class="split-btn" onclick="managePlannerDuplicateSelected()">⧉ Duplicate</button>                                   
-                    <button class="split-btn" onclick="managePlannerImportAsModule()">📦 Import as Module</button>
+                    <button id="planner-import-module-btn" class="split-btn" onclick="managePlannerImportAsModule()">📦 Import as Module</button>
+                    <button id="planner-convert-btn" class="split-btn" onclick="managePlannerToggleModule()">📦 Convert to Module</button>
                 </div>
                 <div class="planner-plan-bottom-row">
                     <button class="save-btn" style="width:24%; margin:0;" onclick="managePlannerCreateNew()">New Plan</button>

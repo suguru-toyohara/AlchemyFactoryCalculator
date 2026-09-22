@@ -9,13 +9,14 @@
 function renderPlannerToolbarSelect() {
     const sel = document.getElementById('planner-plan-select');
     if (!sel) return;
-    sel.innerHTML = plannerLibrary.planOrder
-        .filter(id => plannerLibrary.plans[id])
-        .map(id => {
-            const plan = plannerLibrary.plans[id];
-            const selected = id === plannerLibrary.activePlanId ? 'selected' : '';
-            return `<option value="${id}" ${selected}>${_escapeHtml(plan.name)}</option>`;
-        }).join('');
+    const opt = id => {
+        const plan = plannerLibrary.plans[id];
+        const selected = id === plannerLibrary.activePlanId ? 'selected' : '';
+        return `<option value="${id}" ${selected}>${_escapeHtml(plan.name)}</option>`;
+    };
+    const plans = plannerGetPlanIds(false).map(opt).join('');
+    const modules = plannerGetPlanIds(true).map(opt).join('');
+    sel.innerHTML = plans + (modules ? `<optgroup label="📦 ${t('Modules', 'ui')}">${modules}</optgroup>` : '');
 }
 
 /** 切換目前作用中的方案：重新指向 plannerState、重繪整個畫布 */
@@ -88,9 +89,7 @@ function renderPlannerManageList() {
         selectedDependents = new Set(getPlannerModulesUsingPlan(_plannerManageSelectedId).filter(id => id !== _plannerManageSelectedId));
     }
 
-    container.innerHTML = plannerLibrary.planOrder
-        .filter(id => plannerLibrary.plans[id])
-        .map(id => {
+    const rowHtml = (id) => {
             const plan = plannerLibrary.plans[id];
             const isSelected = id === _plannerManageSelectedId;
             const isActive = id === plannerLibrary.activePlanId;
@@ -127,7 +126,12 @@ function renderPlannerManageList() {
                     ${cycleTag}
                     <span class="planner-plan-meta">${_formatPlannerTime(plan.updatedAt)}</span>
                 </div>`;
-        }).join('');
+        };
+    const planRows = plannerGetPlanIds(false).map(rowHtml).join('');
+    const moduleRows = plannerGetPlanIds(true).map(rowHtml).join('');
+    container.innerHTML =
+        `<div class="planner-plan-section-title">${t('Plans', 'ui')}</div>` + (planRows || `<div class="planner-picker-empty">${t('None', 'ui')}</div>`) +
+        `<div class="planner-plan-section-title">📦 ${t('Modules', 'ui')}</div>` + (moduleRows || `<div class="planner-picker-empty">${t('None', 'ui')}</div>`);
 
     container.querySelectorAll('.planner-plan-row').forEach(row => {
         _initPlannerPlanDragHandle(row.querySelector('.planner-plan-drag-handle'), row);
@@ -142,6 +146,28 @@ function _updatePlannerManageActionsState() {
     if (!row) return;
     const disabled = !_plannerManageSelectedId;
     row.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+    const sel = plannerLibrary.plans[_plannerManageSelectedId];
+    const convertBtn = document.getElementById('planner-convert-btn');
+    if (convertBtn) convertBtn.innerText = (sel && sel.isModule) ? '↩ ' + t('Convert to Plan', 'ui') : '📦 ' + t('Convert to Module', 'ui');
+    const importBtn = document.getElementById('planner-import-module-btn');
+    if (importBtn) importBtn.disabled = disabled || !sel || !sel.isModule || _plannerManageSelectedId === plannerLibrary.activePlanId;
+}
+
+/** Toggle the selected plan between plan and module. A module still in use by other plans stays a module. */
+function managePlannerToggleModule() {
+    const id = _plannerManageSelectedId;
+    const plan = plannerLibrary.plans[id];
+    if (!plan) return;
+    if (plan.isModule) {
+        const users = getPlannerModulesUsingPlan(id).filter(x => x !== id);
+        if (users.length > 0) { alert(t('Used by N plans', 'ui').replace('N', users.length)); return; }
+        delete plan.isModule;
+    } else {
+        plan.isModule = true;
+    }
+    savePlannerLibraryMeta();
+    renderPlannerToolbarSelect();
+    renderPlannerManageList();
 }
 
 function selectPlannerManageRow(id) {
@@ -1154,6 +1180,22 @@ function openPlannerRecipePickerMenu(ctx) {
         };
     });
 
+    // Modules whose net inputs (consuming) / net outputs (producing) include this item
+    plannerGetPlanIds(true).forEach(moduleId => {
+        if (moduleId === plannerLibrary.activePlanId) return;
+        const rates = plannerGetModuleRates(moduleId);
+        if (rates.errorCode) return;
+        const list = consuming ? rates.inputsPerMachine : rates.outputsPerMachine;
+        if (!list.some(p => p.item === ctx.item)) return;
+        const plan = plannerLibrary.plans[moduleId];
+        _plannerPickerCandidates.push({
+            moduleId, moduleRates: rates,
+            mainOut: ctx.item, mainOutName: plan.name,
+            machineName: t('Module', 'ui'), machineKey: '',
+            searchBlob: (plan.name + ' ' + ctx.item + ' module ' + t('Module', 'ui')).toLowerCase()
+        });
+    });
+
     closePlannerRecipePickerMenu();
     const panel = document.createElement('div');
     panel.id = 'planner-recipe-picker';
@@ -1212,6 +1254,16 @@ function renderPlannerRecipePickerList(filterText) {
 
     const _plannerPickerSiblings = _plannerPickerFiltered.map(c => c.recipe);
     list.innerHTML = _plannerPickerFiltered.map((c, idx) => {
+        if (c.moduleId) {
+            const ins = c.moduleRates.inputsPerMachine.map(p => { const d = DB.items[p.item] || {}; return `<img src="img/item${d.id ?? 0}.png" width="18" height="18" title="${_escapeHtml(p.item)}">`; }).join('');
+            const outs = c.moduleRates.outputsPerMachine.map(p => { const d = DB.items[p.item] || {}; return `<img src="img/item${d.id ?? 0}.png" width="18" height="18" title="${_escapeHtml(p.item)}">`; }).join('');
+            return `
+            <div class="planner-picker-row" onclick="choosePlannerRecipeFromPicker(${idx})">
+                <div class="planner-picker-flow">${ins}<span class="planner-picker-arrow">→</span>${outs}</div>
+                <span class="planner-picker-name">${_escapeHtml(c.mainOutName)}</span>
+                <span class="planner-picker-machine">📦 ${c.machineName}</span>
+            </div>`;
+        }
         if (!c.recipe) return;
         const inputIcons = Object.keys(c.recipe.inputs || {}).map(name => {
             const d = DB.items[name] || {};
@@ -1249,8 +1301,8 @@ function createPlannerNodeFromPicker(candidate, ctx) {
     const consuming = ctx.originDir === 'out';
     const targetRate = plannerGetAvailableRateAtPort(ctx.sourceNodeId, ctx.item, ctx.originDir);
 
-    const recipeModifiers = DB.settings.recipeModifiers[recipe.id];
-    const rates = plannerGetRecipeRates(recipe.id, recipeModifiers);
+    const recipeModifiers = recipe ? DB.settings.recipeModifiers[recipe.id] : undefined;
+    const rates = candidate.moduleId ? candidate.moduleRates : plannerGetRecipeRates(recipe.id, recipeModifiers);
     const portList = consuming ? rates.inputsPerMachine : rates.outputsPerMachine;
     const perMachineRate = (portList.find(p => p.item === ctx.item) || {}).rate || 0;
 
@@ -1259,10 +1311,11 @@ function createPlannerNodeFromPicker(candidate, ctx) {
 
     plannerState._nodeSeq = (plannerState._nodeSeq || 0) + 1;
     const nodeId = 'pnode_' + plannerState._nodeSeq;
-    plannerState.nodes[nodeId] = {
-        id: nodeId, recipeId: recipe.id, recipeModifiers: recipeModifiers, machineCount,
-        x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40))
-    };
+    plannerState.nodes[nodeId] = candidate.moduleId
+        ? { id: nodeId, kind: 'module', recipeId: null, moduleId: candidate.moduleId, machineCount,
+            x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40)) }
+        : { id: nodeId, recipeId: recipe.id, recipeModifiers: recipeModifiers, machineCount,
+            x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40)) };
 
     plannerState._edgeSeq = (plannerState._edgeSeq || 0) + 1;
     const edgeId = 'pedge_' + plannerState._edgeSeq;
