@@ -343,6 +343,7 @@ window.ALCHEMY_I18N_JA = {
         "Low": "低",
         "Click to change": "クリックで変更",
         "Click: cycle all items\nCtrl+Click: cycle within checked candidates only": "クリック: 全アイテムを順に切替\nCtrl+クリック: チェック済みの候補内だけで切替",
+        "Populate Shared Supplies": "燃料/肥料/蒸気の供給元を生成",
         "Follow global setting": "全体設定に従う",
         "Missing Custom Input": "カスタム入力アイテムが未指定",
         "CONSUME": "消費",

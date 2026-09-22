@@ -449,6 +449,9 @@ function renderPlannerNodeModalBody(nodeId) {
             <button class="split-btn" style="width:100%;" onclick="autoGenerateAllUpstreamNodes('${node.id}')">
                 ⚡ ${t('Populate All Upstream', 'ui')}
             </button>
+            <button class="split-btn" style="width:100%;" onclick="plannerPopulateSharedSuppliesForNode('${node.id}')">
+                🔌 ${t('Populate Shared Supplies', 'ui')}
+            </button>
             <button class="split-btn" style="width:100%;" onclick="removeAllUpsteamNodes('${node.id}')">
                 × ${t('Clear All Upstream', 'ui')}
             </button>

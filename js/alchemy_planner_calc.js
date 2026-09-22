@@ -697,7 +697,97 @@ function autoGenerateAllUpstreamNodes(rootNodeId) {
 
     renderPlanner(); // node heights must exist in the DOM before the layout measures them
     if (allCreated.length > 0) plannerAutoLayoutUpstream(rootNodeId); // renders + saves
-    else savePlannerState();
+
+    // Finally, one shared supplier per fuel / fertilizer / steam item, placed under the tree
+    const suppliers = plannerPopulateSharedSupplies(rootNodeId);
+    suppliers.forEach(id => _plannerSelectedNodeIds.add(id));
+    if (suppliers.length > 0 || allCreated.length === 0) { renderPlanner(); savePlannerState(); }
+}
+
+/* ==========================================================================
+   SECTION: SHARED SUPPLY NODES (fuel / fertilizer / steam)
+   ========================================================================== */
+
+/**
+ * For the root node and everything upstream of it, create ONE supplier node per short dock item
+ * (e.g. one Steam Boiler feeding every steam socket, one fertilizer line feeding every nursery),
+ * sized to cover the total shortage and connected to each socket. Suppliers are placed below the
+ * group's bounding box so the dock pipes come up from underneath.
+ * Runs a few passes so a created supplier's own docks (e.g. the boiler's fuel) get covered too.
+ * Returns the ids of the created supplier nodes. Also available from Node Settings → Graph Tools.
+ */
+function plannerPopulateSharedSupplies(rootNodeId, maxPasses = 3) {
+    const created = [];
+    const group = new Set(getPlannerUpstreamNodeIds(rootNodeId));
+
+    for (let pass = 0; pass < maxPasses; pass++) {
+        const flows = plannerResolveFlows();
+
+        // item -> [{nodeId, shortage}] over short dock ports in the group
+        const demands = {};
+        group.forEach(nodeId => {
+            const ports = flows.nodePortsCache[nodeId];
+            if (!ports) return;
+            ports.inputs.forEach(p => {
+                if (!p.dock) return;
+                const remaining = flows.portRemaining[plannerPortKey(nodeId, p.item, 'in')] ?? 0;
+                if (remaining > 0.001) (demands[p.item] = demands[p.item] || []).push({ nodeId, shortage: remaining });
+            });
+        });
+        const items = Object.keys(demands);
+        if (items.length === 0) break;
+
+        // bounding box of the group (graph coords) to place suppliers underneath
+        let minX = Infinity, maxX = -Infinity, maxBottom = -Infinity;
+        group.forEach(id => {
+            const n = plannerState.nodes[id]; if (!n) return;
+            const el = document.getElementById('planner-node-' + id);
+            const h = el ? el.offsetHeight : 140, w = el ? el.offsetWidth : 200;
+            minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x + w); maxBottom = Math.max(maxBottom, n.y + h);
+        });
+        if (!isFinite(minX)) break;
+
+        let madeAny = false;
+        let slotX = minX;
+        const y = plannerSnapVal(maxBottom + 120);
+        items.forEach(item => {
+            const recipe = getActiveRecipe(item);
+            if (!recipe) return; // raw / purchased item without a recipe: leave the sockets open
+            const modifiers = DB.settings.recipeModifiers?.[recipe.id];
+            const rates = plannerGetRecipeRates(recipe.id, modifiers);
+            const perMachine = (rates.outputsPerMachine.find(p => p.item === item) || {}).rate || 0;
+            if (perMachine <= 0) return;
+
+            const total = demands[item].reduce((sum, d) => sum + d.shortage, 0);
+            plannerState._nodeSeq = (plannerState._nodeSeq || 0) + 1;
+            const newId = 'pnode_' + plannerState._nodeSeq;
+            plannerState.nodes[newId] = {
+                id: newId, kind: 'recipe', recipeId: recipe.id, recipeModifiers: modifiers,
+                machineCount: total / perMachine, x: plannerSnapVal(slotX), y
+            };
+            slotX += 200 + 60;
+
+            demands[item].forEach(d => {
+                plannerState._edgeSeq = (plannerState._edgeSeq || 0) + 1;
+                const edgeId = 'pedge_' + plannerState._edgeSeq;
+                plannerState.edges[edgeId] = { id: edgeId, item, fromNode: newId, toNode: d.nodeId, createdAt: plannerState._edgeSeq };
+            });
+            created.push(newId); group.add(newId); madeAny = true;
+        });
+        if (!madeAny) break;
+        renderPlanner(); // so the next pass can measure the new nodes
+    }
+    return created;
+}
+
+/** Button version: generate shared suppliers for a node's upstream group, then render + save. */
+function plannerPopulateSharedSuppliesForNode(rootNodeId) {
+    const created = plannerPopulateSharedSupplies(rootNodeId);
+    console.info('Create shared supply nodes: ' + created.length);
+    _plannerSelectedNodeIds.clear();
+    created.forEach(id => _plannerSelectedNodeIds.add(id));
+    renderPlanner();
+    savePlannerState();
 }
 
 /** 選取 rootNodeId 本身 + 所有上游節點 (沿 input edge 反向走的全部祖先)，加入目前選取集合並重繪 */
