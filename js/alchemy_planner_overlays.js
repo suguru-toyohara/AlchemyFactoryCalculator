@@ -1180,6 +1180,22 @@ function openPlannerRecipePickerMenu(ctx) {
         };
     });
 
+    // Modules whose net inputs (consuming) / net outputs (producing) include this item
+    plannerGetPlanIds(true).forEach(moduleId => {
+        if (moduleId === plannerLibrary.activePlanId) return;
+        const rates = plannerGetModuleRates(moduleId);
+        if (rates.errorCode) return;
+        const list = consuming ? rates.inputsPerMachine : rates.outputsPerMachine;
+        if (!list.some(p => p.item === ctx.item)) return;
+        const plan = plannerLibrary.plans[moduleId];
+        _plannerPickerCandidates.push({
+            moduleId, moduleRates: rates,
+            mainOut: ctx.item, mainOutName: plan.name,
+            machineName: t('Module', 'ui'), machineKey: '',
+            searchBlob: (plan.name + ' ' + ctx.item + ' module ' + t('Module', 'ui')).toLowerCase()
+        });
+    });
+
     closePlannerRecipePickerMenu();
     const panel = document.createElement('div');
     panel.id = 'planner-recipe-picker';
@@ -1238,6 +1254,16 @@ function renderPlannerRecipePickerList(filterText) {
 
     const _plannerPickerSiblings = _plannerPickerFiltered.map(c => c.recipe);
     list.innerHTML = _plannerPickerFiltered.map((c, idx) => {
+        if (c.moduleId) {
+            const ins = c.moduleRates.inputsPerMachine.map(p => { const d = DB.items[p.item] || {}; return `<img src="img/item${d.id ?? 0}.png" width="18" height="18" title="${_escapeHtml(p.item)}">`; }).join('');
+            const outs = c.moduleRates.outputsPerMachine.map(p => { const d = DB.items[p.item] || {}; return `<img src="img/item${d.id ?? 0}.png" width="18" height="18" title="${_escapeHtml(p.item)}">`; }).join('');
+            return `
+            <div class="planner-picker-row" onclick="choosePlannerRecipeFromPicker(${idx})">
+                <div class="planner-picker-flow">${ins}<span class="planner-picker-arrow">→</span>${outs}</div>
+                <span class="planner-picker-name">${_escapeHtml(c.mainOutName)}</span>
+                <span class="planner-picker-machine">📦 ${c.machineName}</span>
+            </div>`;
+        }
         if (!c.recipe) return;
         const inputIcons = Object.keys(c.recipe.inputs || {}).map(name => {
             const d = DB.items[name] || {};
@@ -1275,8 +1301,8 @@ function createPlannerNodeFromPicker(candidate, ctx) {
     const consuming = ctx.originDir === 'out';
     const targetRate = plannerGetAvailableRateAtPort(ctx.sourceNodeId, ctx.item, ctx.originDir);
 
-    const recipeModifiers = DB.settings.recipeModifiers[recipe.id];
-    const rates = plannerGetRecipeRates(recipe.id, recipeModifiers);
+    const recipeModifiers = recipe ? DB.settings.recipeModifiers[recipe.id] : undefined;
+    const rates = candidate.moduleId ? candidate.moduleRates : plannerGetRecipeRates(recipe.id, recipeModifiers);
     const portList = consuming ? rates.inputsPerMachine : rates.outputsPerMachine;
     const perMachineRate = (portList.find(p => p.item === ctx.item) || {}).rate || 0;
 
@@ -1285,10 +1311,11 @@ function createPlannerNodeFromPicker(candidate, ctx) {
 
     plannerState._nodeSeq = (plannerState._nodeSeq || 0) + 1;
     const nodeId = 'pnode_' + plannerState._nodeSeq;
-    plannerState.nodes[nodeId] = {
-        id: nodeId, recipeId: recipe.id, recipeModifiers: recipeModifiers, machineCount,
-        x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40))
-    };
+    plannerState.nodes[nodeId] = candidate.moduleId
+        ? { id: nodeId, kind: 'module', recipeId: null, moduleId: candidate.moduleId, machineCount,
+            x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40)) }
+        : { id: nodeId, recipeId: recipe.id, recipeModifiers: recipeModifiers, machineCount,
+            x: plannerSnapVal(Math.round(ctx.graphX - 115)), y: plannerSnapVal(Math.round(ctx.graphY - 40)) };
 
     plannerState._edgeSeq = (plannerState._edgeSeq || 0) + 1;
     const edgeId = 'pedge_' + plannerState._edgeSeq;

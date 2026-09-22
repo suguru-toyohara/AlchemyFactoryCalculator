@@ -914,13 +914,15 @@ button.reset-btn:hover { background: var(--danger); color: white; }
 .planner-badge-shortage { color: var(--danger); }
 
 /* ---- Dock ports (Steam): socket on the bottom edge of the card ---- */
-.planner-dock-row { display: flex; flex-direction: column; gap: 2px; }
+/* several sockets (fuel + fertilizer, module with many) sit side by side along the bottom edge */
+.planner-dock-row { display: flex; flex-direction: row; gap: 0; margin: 2px -8px -8px -8px; border-top: 1px dashed #3a3a3a; }
 .planner-dock-row:empty { display: none; }
 .planner-port-dock {
-    justify-content: center; margin: 2px -8px -8px -8px; padding: 4px 8px 6px 8px;
-    border-top: 1px dashed #3a3a3a; color: #9cf;
+    flex: 1 1 0; min-width: 0; justify-content: center; margin: 0; padding: 4px 4px 6px 4px; color: #9cf;
 }
-.planner-port-dock + .planner-port-dock { margin-top: 8px; }
+.planner-port-dock + .planner-port-dock { border-left: 1px dashed #3a3a3a; }
+.planner-port-dock .planner-dock-label { min-width: 0; overflow: hidden; }
+.planner-port-dock .planner-port-name { overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
 .planner-dock-fuel { color: var(--warn); }
 .planner-dock-fert { color: var(--bio); }
 .planner-dock-steam { color: #9cf; }
@@ -933,7 +935,7 @@ button.reset-btn:hover { background: var(--danger); color: white; }
     left: 50%; right: auto; top: auto; bottom: -13px; transform: translateX(-50%);
     width: 14px; height: 10px; border-radius: 2px 2px 5px 5px;
 }
-.planner-port-dock .planner-port-badge { left: auto; right: 8px; top: auto; bottom: -16px; transform: none; }
+.planner-port-dock .planner-port-badge { left: 50%; right: auto; top: auto; bottom: -30px; transform: translateX(-50%); }
 .planner-node.reversed .planner-port-dock .planner-port-dot { left: 50%; right: auto; transform: translateX(-50%); }
 
 /* Portal node reversed direction: swap visual side of in/out ports */
