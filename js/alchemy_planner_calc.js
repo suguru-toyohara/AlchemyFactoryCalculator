@@ -171,7 +171,7 @@ function plannerGetRecipeRates(recipeId, recipeModifiers, nodeOpts = null) {
     const mainOut = Object.keys(recipe.outputs)[0];
     const nutrientCost = recipe.nutrientCost || 0;  
 
-    let batchesPerMinPerMachine = (60 / (recipeTime || 1)) * speedMult;
+    let batchesPerMinPerMachine = (60 / (recipeTime || 1)) * AlchemyCalcEngine.getRecipeSpeedMult(recipe, speedMult);
     const inputsPerMachine = Object.entries(recipe.inputs || {}).map(([item, qty]) => ({
         item, rate: qty * batchesPerMinPerMachine
     }));
