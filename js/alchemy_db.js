@@ -1,6 +1,6 @@
 window.ALCHEMY_DB = {
-    "version": 56,
-    "date": "2026.09.14",
+    "version": 57,
+    "date": "2026.09.22",
     "gameVersion": "1.0.4952",
     "items": {
         // --- RAW RESOURCES ---
@@ -235,7 +235,7 @@ window.ALCHEMY_DB = {
         // --- Heating ---
         "Stone Furnace": { "heatSelf": 0, "slots": 9, "isGenerator": true, "buildCost": { "Stone": 20 }, "tier": 3, L:3,W:3,H:3 }, 
         "Blast Furnace": { "heatSelf": 0, "slots": 42, "isGenerator": true, "buildCost": { "Brick": 30 }, "tier": 4, L:7,W:6,H:3 }, 
-        "Steam Heating Pad": { "heatSelf": 0, "slots": 9, "isGenerator": true, "buildCost": { "Steel Ingot": 3, "Copper Ingot": 3 }, "tier": 6, L:3,W:3,H:1 }, 
+        "Steam Heating Pad": { "heatSelf": 0, "slots": 9, "isGenerator": true, "steamHeated": true, "heatPerSteam": 20, "buildCost": { "Steel Ingot": 3, "Copper Ingot": 3 }, "tier": 6, L:3,W:3,H:1 }, 
 
         // --- Raw Material Production ---
         "Table Saw": { "buildCost": { "Plank": 5 }, "tier": 1, L:4,W:3,H:3 },
@@ -662,6 +662,9 @@ window.ALCHEMY_DB = {
 
         // --- VIRTUAL RECIPES ---
         { "id": "Unstable Catalyst (Gentian Mixture)", "machine": "Cauldron", "inputs": { "Gentian Mixture": 1, "Gentian Nectar": 1, "Gentian": 1 }, "outputs": { "Unstable Catalyst": 1 }, "baseTime": 10.3, "heatCost": 148.0 },
-        { "id": "Steam Boiler (High)", "machine": "Steam Boiler", "outputs": { "Steam": 300 }, "baseTime": 2, "heatCost": 3000 }
+        // Steam Boiler: 3 output levels (1 Steam = 20 P). heatCost is P/s consumed from the heating device below.
+        { "id": "Steam Boiler (High)", "machine": "Steam Boiler", "outputs": { "Steam": 300 }, "baseTime": 2, "heatCost": 3000 },
+        { "id": "Steam Boiler (Mid)", "machine": "Steam Boiler", "outputs": { "Steam": 50 }, "baseTime": 2, "heatCost": 500 },
+        { "id": "Steam Boiler (Low)", "machine": "Steam Boiler", "outputs": { "Steam": 10 }, "baseTime": 2, "heatCost": 100 }
     ]
 };

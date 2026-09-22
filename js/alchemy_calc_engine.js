@@ -292,6 +292,15 @@
         sources.push(source);
     }
 
+    /** Factory Efficiency speed multiplier as it applies to a recipe.
+     *  Seed Plots grow at a fixed rate. Nurseries are limited by the fertilizer's max fertility (V/s), a hard cap
+     *  that upgrades don't raise, so their batch time (nutrientCost / maxFertility) is not sped up either. */
+    function getRecipeSpeedMult(recipe, speedMult) {
+        if (recipe.machine === 'Seed Plot') return 1;
+        if (recipe.machine === 'Nursery' && (recipe.nutrientCost || 0) > 0) return 1;
+        return speedMult;
+    }
+
     function getRecipeTiming(db, params, recipe) {
         let recipeTime = recipe.baseTime || 1;
         const nutrientCost = recipe.nutrientCost || 0;
@@ -308,7 +317,7 @@
         batchYield = applyAlchemyMult(recipe.machine, batchYield, params.alchemyMult);
 
         const recipeTime = getRecipeTiming(db, params, recipe);
-        const machineOutputRate = (60 / (recipeTime || 1)) * (recipe.machine !== 'Seed Plot' ? params.speedMult : 1);
+        const machineOutputRate = (60 / (recipeTime || 1)) * getRecipeSpeedMult(recipe, params.speedMult);
         let effectiveBatchesPerMin = machineOutputRate;
 
         if (!itemDef.liquid) {
@@ -1094,6 +1103,7 @@
         runCalculation,
         getBeltSpeed,
         getSpeedMult,
+        getRecipeSpeedMult,
         getAlchemyMult,
         getSellMult,
         getRecipesFor,

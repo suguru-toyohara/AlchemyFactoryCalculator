@@ -708,6 +708,10 @@
                 <button id="planner-redo-btn" class="split-btn" onclick="plannerRedo()" title="Redo (Ctrl+Y)">↻ Redo</button>
                 <span class="planner-toolbar-divider"></span>
                 <button class="split-btn" onclick="onPlannerClearAllClick()">Clear All</button>
+                <span class="planner-toolbar-divider"></span>
+                <span class="planner-toolbar-supply">🔥<select id="planner-heating-select" class="planner-plan-select" onchange="onPlannerToolbarSupplyChange()"></select></span>
+                <span class="planner-toolbar-supply">🧪<select id="planner-fuel-select" class="planner-plan-select" onchange="onPlannerToolbarSupplyChange()"></select></span>
+                <span class="planner-toolbar-supply">🌿<select id="planner-fert-select" class="planner-plan-select" onchange="onPlannerToolbarSupplyChange()"></select></span>
             </div>
             <div id="planner-canvas" class="planner-canvas" oncontextmenu="onPlannerCanvasContextMenu(event)">
                 <div id="planner-viewport" class="planner-viewport">

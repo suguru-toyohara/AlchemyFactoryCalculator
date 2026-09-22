@@ -115,6 +115,7 @@ function initPlannerPage() {
     loadPlannerLibrary();
     loadPlannerSettings();
     renderPlannerToolbarSelect();
+    renderPlannerToolbarSupplySelects();
     _plannerViewportCache[plannerLibrary.activePlanId] = { ..._plannerSettings.viewport };
 
     renderPlanner();
@@ -850,8 +851,9 @@ function createPlannerNodeEl(node, flows) {
     wrap.innerHTML = ``;
 
     if (node.recipeId) {
-        const heatTag = ports.heatItemsPerMin > 0 ? 'heat' : '';
-        const fertTag = ports.fertItemsPerMin > 0 ? 'fert' : '';
+        const docks = new Set(ports.inputs.map(p => p.dock).filter(Boolean));
+        const heatTag = docks.has('fuel') ? 'heat' : (docks.has('steam') ? 'steam' : '');
+        const fertTag = docks.has('fert') ? 'fert' : '';
         const goldTag = ports.goldCostPerMin > 0 ? 'gold' : '';
         const machineKey = ports.recipe ? ports.recipe.machine : '';
         const mainOut = ports.recipe ? Object.keys(ports.recipe.outputs)[0] : plannerMainOutput(node.recipeId) || '';
@@ -915,6 +917,7 @@ function createPlannerNodeEl(node, flows) {
             <div class="planner-heatfert-row" id="planner-heatfert-${node.id}">
                 ${renderPlannerHeatFertHtml(ports)}
             </div>
+            ${renderPlannerDockHtml(node, ports, flows)}
         </div>
     `;
 
@@ -1001,8 +1004,16 @@ function onPlannerHeaderHover(headerEl, nodeId) {
     showPlannerRateTooltip(headerEl, rates);
 }
 
+/** Inputs shown in the left column (dock ports — fuel / fert / steam — are rendered by renderPlannerDockHtml instead) */
+function plannerSidePorts(node, ports) {
+    return ports.inputs.filter(p => !p.dock);
+}
+function plannerDockPorts(node, ports) {
+    return ports.inputs.filter(p => p.dock);
+}
+
 function renderPlannerPortsHtml(node, ports, flows) {
-    const orderedInputs = applyPortOrder(ports.inputs, node.portOrder?.in);
+    const orderedInputs = applyPortOrder(plannerSidePorts(node, ports), node.portOrder?.in);
     const orderedOutputs = applyPortOrder(ports.outputs, node.portOrder?.out);
     const inRows = orderedInputs.map(p => renderPlannerPortRow(node.id, p, 'in', flows)).join('');
     const outRows = orderedOutputs.map(p => renderPlannerPortRow(node.id, p, 'out', flows)).join('');
@@ -1012,7 +1023,7 @@ function renderPlannerPortsHtml(node, ports, flows) {
     </div>`;
 }
 
-function renderPlannerPortRow(nodeId, port, dir, flows) {
+function renderPlannerPortRow(nodeId, port, dir, flows, dock = false) {
     const itemDef = DB.items[port.item] || {};
     const key = plannerPortKey(nodeId, port.item, dir);
     const connected = flows && (flows.portConnections[key] || []).length > 0;
@@ -1048,24 +1059,33 @@ function renderPlannerPortRow(nodeId, port, dir, flows) {
         }
     }
 
-    const dot = `<span class="planner-port-dot ${colorClass}" data-item="${port.item}" data-dir="${dir}"></span>`;
+    const dot = `<span class="planner-port-dot ${colorClass}" data-item="${port.item}" data-dir="${dir}"${dock ? ' data-dock="1"' : ''}></span>`;
     const icon = `<img src="img/item${itemDef.id ?? 0}.png" width="16" height="16">`;
     const name = `<span class="planner-port-name">${port.item}</span>`;
     const rate = `<span class="planner-port-rate">${formatVal(port.rate)}</span>`;
+    if (dock) {
+        const clickable = port.dock === 'fuel' || port.dock === 'fert';
+        const labelAttrs = clickable
+            ? ` class="planner-dock-label clickable" title="${t('Click to change', 'ui')}" onclick="openPlannerDockPickerMenu('${nodeId}', '${port.dock}', event.clientX, event.clientY)"`
+            : ` class="planner-dock-label"`;
+        return `<div class="planner-port planner-port-in planner-port-dock planner-dock-${port.dock} ${rateClass}" title="${t(PLANNER_DOCK_LABELS[port.dock] || '', 'ui')}: ${port.item}"><span${labelAttrs}>${icon}${rate}${name}</span>${dot}${badgeHtml}</div>`;
+    }
     if (dir === 'in') return `<div class="planner-port planner-port-in ${rateClass}" title="${port.item}">${badgeHtml}${dot}${rate}${icon}${name}</div>`;
     return `<div class="planner-port planner-port-out ${rateClass}" title="${port.item}">${name}${icon}${rate}${dot}${badgeHtml}</div>`;
 }
 
+const PLANNER_DOCK_LABELS = { fuel: 'Fuel', fert: 'Fertilizer', steam: 'Steam' };
+
+/** Dock ports (fuel / fertilizer / steam) hang off the bottom edge of the card; each socket dot sits below the card. */
+function renderPlannerDockHtml(node, ports, flows) {
+    const docks = plannerDockPorts(node, ports);
+    const rows = docks.map(p => renderPlannerPortRow(node.id, p, 'in', flows, true)).join('');
+    return `<div class="planner-dock-row" id="planner-dock-${node.id}">${rows}</div>`;
+}
+
+/** Fuel / fertilizer used to be shown here as tags; they are dock ports now. Only the gold cost remains. */
 function renderPlannerHeatFertHtml(ports) {
     let html = '';
-    if (ports.heatItemsPerMin > 0.001) {
-        const fuelDef = DB.items[DB.settings.defaultFuel] || {};
-        html += `<span class="heat-tag">-${formatVal(ports.heatItemsPerMin)}/m <img src="img/item${fuelDef.id ?? 0}.png" class="item-icon-small" title="${DB.settings.defaultFuel}"></span>`;
-    }
-    if (ports.fertItemsPerMin > 0.001) {
-        const fertDef = DB.items[DB.settings.defaultFert] || {};
-        html += `<span class="bio-tag">-${formatVal(ports.fertItemsPerMin)}/m <img src="img/item${fertDef.id ?? 0}.png" class="item-icon-small" title="${DB.settings.defaultFert}"></span>`;
-    }
     if (ports.goldCostPerMin > 0.001) {
         html += `<span class="gold-tag">-${formatVal(ports.goldCostPerMin)}/m <img src="img/copper.png" class="item-icon-small"></span>`;
     }
@@ -1216,6 +1236,8 @@ function patchPlannerNodeDisplay(node, flows) {
         if (portsRowEl) portsRowEl.outerHTML = renderPlannerPortsHtml(node, ports, flows);
         const heatFertEl = document.getElementById('planner-heatfert-' + node.id);
         if (heatFertEl) heatFertEl.innerHTML = renderPlannerHeatFertHtml(ports);
+        const dockEl = document.getElementById('planner-dock-' + node.id);
+        if (dockEl) dockEl.outerHTML = renderPlannerDockHtml(node, ports, flows);
     }
     document.querySelectorAll(`[data-mc-for="${node.id}"]`).forEach(el => {
         if (document.activeElement !== el) el.value = Number(node.machineCount.toFixed(3));
@@ -1228,6 +1250,8 @@ function patchPlannerNodeDisplay(node, flows) {
         if (modalPortsRow) modalPortsRow.outerHTML = renderPlannerPortsHtml(node, ports, flows);
         const modalHeatFert = modalBody.querySelector('.planner-heatfert-row');
         if (modalHeatFert) modalHeatFert.innerHTML = renderPlannerHeatFertHtml(ports);
+        const modalDock = modalBody.querySelector('.planner-dock-row');
+        if (modalDock) modalDock.outerHTML = renderPlannerDockHtml(node, ports, flows);
     }
 }
 
@@ -1370,13 +1394,24 @@ function getPlannerPortGraphPos(nodeId, item, dir) {
     const dot = getPlannerPortDotEl(nodeId, item, dir);
     if (!dot) return null;
     const rect = dot.getBoundingClientRect();
-    return plannerScreenToGraph(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    const pos = plannerScreenToGraph(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    if (dot.dataset.dock === '1') pos.dock = true; // edge enters this port from below
+    return pos;
+}
+
+/** Control point for an edge end: horizontal for side ports, vertical (from below) for dock ports */
+function _plannerEdgeCtrl(p, other, sign) {
+    if (p.dock) {
+        const dy = Math.max(40, Math.abs(other.y - p.y) * 0.5);
+        return { x: p.x, y: p.y + dy };
+    }
+    const dx = Math.max(40, Math.abs(other.x - p.x) * 0.5);
+    return { x: p.x + dx * sign, y: p.y };
 }
 
 function buildPlannerEdgePath(p1, p2, sign1 = 1, sign2 = -1) {
-    const dx = Math.max(40, Math.abs(p2.x - p1.x) * 0.5);
-    const c1 = { x: p1.x + dx * sign1, y: p1.y };
-    const c2 = { x: p2.x + dx * sign2, y: p2.y };
+    const c1 = _plannerEdgeCtrl(p1, p2, sign1);
+    const c2 = _plannerEdgeCtrl(p2, p1, sign2);
     const d = `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p2.x} ${p2.y}`;
     // 三次貝茲曲線 t=0.5 的真實中點，供 label 定位使用
     const mid = {
@@ -1387,8 +1422,7 @@ function buildPlannerEdgePath(p1, p2, sign1 = 1, sign2 = -1) {
 }
 
 function buildPlannerEdgePathD(p1, p2, sign1 = 1, sign2 = -1) {
-    const dx = Math.max(40, Math.abs(p2.x - p1.x) * 0.5);
-    return `M ${p1.x} ${p1.y} C ${p1.x + dx * sign1} ${p1.y}, ${p2.x + dx * sign2} ${p2.y}, ${p2.x} ${p2.y}`;
+    return buildPlannerEdgePath(p1, p2, sign1, sign2).d;
 }
 
 /**
@@ -1517,6 +1551,7 @@ function attachPlannerPortDragHandlers() {
     layer.addEventListener('pointerdown', (e) => {
         const row = e.target.closest('.planner-port');
         if (!row) return;
+        if (e.target.closest('.planner-dock-label.clickable')) { e.stopPropagation(); return; } // label click opens the supply picker
         const dot = row.querySelector('.planner-port-dot');
         if (!dot) return;
         e.stopPropagation();

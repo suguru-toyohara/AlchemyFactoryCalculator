@@ -132,6 +132,7 @@ function _injectHelpStyles() {
         .wiki-detail-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
         .wiki-badge { font-size: 0.7em; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
         .wiki-badge.category { background: rgba(100,120,180,0.15); color: #8ab; border: 1px solid rgba(100,120,180,0.35); }
+        .wiki-desc { font-size: 0.82em; color: #bbb; line-height: 1.5; margin: 0 0 12px; padding: 8px 10px; border-left: 3px solid var(--accent, #4af); background: rgba(255,255,255,0.03); border-radius: 0 4px 4px 0; }
         .wiki-stats-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 0.8em; }
         .wiki-stat-key { color: var(--text-muted, #888); }
         .wiki-stat-val { color: var(--text, #ddd); }
@@ -788,6 +789,17 @@ function _updateLayoutState() {
     area.classList.toggle('has-selection', hasSelection);
 }
 
+/* ─── Descriptions (keyed by English item/machine name; translated through the ui dictionary) ─── */
+var WIKI_DESCRIPTIONS = {
+    'Steam': 'Produced by the Steam Boiler and consumed by the Steam Heating Pad. 1 Steam = 20 P of heat. Pipe throughput is unlimited, so only the amount and boiler count matter. In the Planner, steam enters a machine through the dock port on the bottom edge of its card.',
+    'Steam Boiler': 'Converts heat into steam. Sits on a Stone Furnace / Blast Furnace like other heated machines. Three output levels: Low 100 P/s → 300 Steam/min, Mid 500 P/s → 1,500 Steam/min, High 3,000 P/s → 9,000 Steam/min (all scale with Factory Efficiency). Pick the level in the node\'s recipe list.',
+    'Steam Heating Pad': 'A fuel-free heating device: feed it steam to heat the machine on top. The machine\'s heat demand (P/s) becomes a steam demand at 20 P per Steam. In the Planner, choose it per node under Node Settings → Heating Device, or globally in the Calculator\'s Logistics panel.'
+};
+function _wikiDescHtml(englishName) {
+    var text = WIKI_DESCRIPTIONS[englishName];
+    return text ? '<p class="wiki-desc">' + _tn(text) + '</p>' : '';
+}
+
 function _renderItemDetail(itemName) {
     var pane = document.getElementById('wiki-right-pane');
     if (!pane) return;
@@ -898,6 +910,7 @@ function _renderItemDetail(itemName) {
         + '<h2 class="wiki-detail-name">' + itemName + '</h2>'
         + '<div class="wiki-detail-meta"><span class="wiki-badge category">' + (_tn(def.category, 'categories') || '—') + '</span></div>'
         + '</div></div>'
+        + _wikiDescHtml(toEnglishItemName(itemName))
         + (statsHTML ? '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Properties') + '</div>' + statsHTML + '</div>' : '')
         + '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Production Recipes') + ' (' + producers.length + ')</div>' + producersHTML + '</div>'
         + '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Used In') + ' (' + consumers.length + ')</div>' + consumersHTML + '</div>'
@@ -1053,6 +1066,7 @@ function _renderMachineDetail(machineName) {
         + '<div class="wiki-detail-title-area">'
         + '<h2 class="wiki-detail-name">' + _tn(machineName, 'machines') + '</h2>'
         + '</div></div>'
+        + _wikiDescHtml(machineName)
         + (propsHTML ? '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Properties') + '</div>' + propsHTML + '</div>' : '')
         + '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Build Cost') + '</div>' + buildCostHTML + '</div>'
         + '<div class="wiki-section"><div class="wiki-section-title">' + _tn('Production Recipes') + ' (' + recipes.length + ')</div>' + recipesHTML + '</div>';
