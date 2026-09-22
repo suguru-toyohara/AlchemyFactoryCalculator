@@ -553,7 +553,8 @@ function estimatePlannerNodeHeight(recipe) {
  * 並自動連線。只展開這一層，不遞迴往上補 (遞迴版見 autoGenerateAllUpstreamNodes)。
  * 回傳這次呼叫新建立的節點 id 陣列 (供遞迴使用)，不做任何 render/save (由呼叫端負責)。
  */
-function _autoGenerateUpstreamNodesCore(nodeId) {
+/** @param {boolean} skipDock  ignore fuel / fertilizer / steam dock ports (used by the recursive "Populate All Upstream") */
+function _autoGenerateUpstreamNodesCore(nodeId, skipDock = false) {
     const sourceNode = plannerState.nodes[nodeId];
     if (!sourceNode) return [];
 
@@ -563,6 +564,7 @@ function _autoGenerateUpstreamNodesCore(nodeId) {
 
     const deficits = [];
     ports.inputs.forEach(p => {
+        if (skipDock && p.dock) return;
         const key = plannerPortKey(nodeId, p.item, 'in');
         const remaining = flows.portRemaining[key] ?? 0;
         if (remaining > 0.001) deficits.push({ item: p.item, deficit: remaining });
@@ -647,7 +649,7 @@ function _autoGenerateUpstreamNodesCore(nodeId) {
     return createdIds;
 }
 
-/** 對外版本：單層展開，展開後立即 render + 存檔 */
+/** 對外版本：單層展開，展開後立即 render + 存檔 (dock ports included) */
 function autoGenerateUpstreamNodes(nodeId) {
     const created = _autoGenerateUpstreamNodesCore(nodeId);
     if (created.length === 0) return;
@@ -677,7 +679,9 @@ function autoGenerateAllUpstreamNodes(rootNodeId) {
 
         expandingRecipes.add(node.recipeId);
 
-        const created = _autoGenerateUpstreamNodesCore(nodeId);
+        // Fuel / fertilizer / steam supplies are left out of the recursive expansion: they feed back into
+        // heated / fertilized machines (boiler → fuel → heated machine → fuel ...) and would loop forever.
+        const created = _autoGenerateUpstreamNodesCore(nodeId, true);
         allCreated.push(...created);
         created.forEach(dfs);
 
