@@ -998,6 +998,9 @@ button.reset-btn:hover { background: var(--danger); color: white; }
     stroke-dasharray: 6 5; animation: planner-flow-dash 0.6s linear infinite;
 }
 
+/* Dock pipes (fuel / fert / steam): solid, slightly thicker, square joints */
+.planner-edge-pipe { stroke-dasharray: none; animation: none; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+
 /* 靜態箭頭 chevron（edgeStyle = 1） */
 .planner-edge-chevrons {
     fill: none;
