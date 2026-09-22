@@ -73,7 +73,7 @@
                     <option value="zh">简体中文</option>
                 </select></span>
                 <a href="https://github.com/suguru-toyohara/AlchemyFactoryCalculator" target="_blank" class="repo-link">GitHub Repo</a>
-                <span id="last-updated-time-text">2026.09.15</span>
+                <span id="last-updated-time-text">2026.09.22</span>
             </span>
         </div>
         <div class="tabs" id="page-tab-container">
@@ -507,7 +507,7 @@
                             </div>
                             <div style="border-top: 1px solid #555; margin: 20px 0 10px 0;"></div>
                             <div class="input-group">
-                                <label id="lvlSell-title" for="lvlSell">Selling Price</label>
+                                <label id="lvlSell-title" for="lvlSell" title="Shop profit + Sales type profit">Selling Price</label>
                                 <div class="spinner-wrapper">
                                     <button class="spinner-btn left first" onclick="adjustInput('lvlSell', -1); calculate();">-</button>
                                     <input type="number" id="lvlSell" value="0" min="0" oninput="calculate()" onchange="saveSettings()">
@@ -515,7 +515,7 @@
                                 </div>
                             </div>
                             <div class="input-group">
-                                <label id="lvlContract-title" for="lvlContract">Wholesale Price</label>
+                                <label id="lvlContract-title" for="lvlContract" title="Purchase contract reward bonus">Wholesale Price</label>
                                 <div class="spinner-wrapper">
                                     <button class="spinner-btn left first" onclick="adjustInput('lvlContract', -1); calculate();">-</button>
                                     <input type="number" id="lvlContract" value="0" min="0" oninput="calculate()" onchange="saveSettings()">
