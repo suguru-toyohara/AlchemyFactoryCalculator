@@ -209,7 +209,7 @@ The chain-link button next to a node's machine-count input toggles **Link Mode**
 
 A node can also reference an entire other plan as a **module**: it exposes that plan's *net* unconnected inputs/outputs as its own ports (i.e. whatever that plan doesn't already produce/consume internally), plus its total fuel/fertilizer draw. Its Node Settings modal shows a **📦 Load Module** button that switches the Planner to that referenced plan. The tool detects circular module references and flags them as an error on the node instead of resolving them.
 
-Select a group of nodes and click **📦 Encapsulate** to create a new plan from the selection and replace it with a module node. The internal connections are retained inside the new module.
+Modules are plans flagged as modules: they live under a separate **📦 Modules** section in Manage Plans (and a separate group in the plan dropdown, so you can still open and edit them). **+ Add Node** lists your modules under a **📦 Modules** category next to the item recipes. Select a group of nodes and click **📦 Encapsulate** to create a new module from the selection and replace it with a module node (internal connections are kept inside). In Manage Plans, **📦 Convert to Module** / **↩ Convert to Plan** switch a plan between the two lists; a module still used by other plans cannot be converted back.
 
 Use **🔀 Optimize Port Order** in the lower-right canvas controls to optimize all port orders; dropping a node also performs a single-node port-order optimization.
 

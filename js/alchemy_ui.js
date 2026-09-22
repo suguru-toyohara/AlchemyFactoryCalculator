@@ -6,6 +6,7 @@ let currentFocus = -1;
 
 // ITEM PICKER GLOBALS
 let currentPickerCategory = "[All]";
+const PICKER_MODULE_CATEGORY = "[Modules]";
 let currentPickerTier = 0; // 0 = 不篩選
 let currentPickerProps = new Set(); // 'sellPrice' | 'wholesalePrice' | 'cauldronTarget'
 const PICKER_PROP_DEFS = [
@@ -575,6 +576,7 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
  */
 function openItemPicker() {
     document.getElementById('ui-picker-title').innerText = t('Select Item', 'ui');
+    if (currentPickerCategory === PICKER_MODULE_CATEGORY && !window.selectPlannerModule) currentPickerCategory = "[All]";
     renderCategoryBar();
     renderPickerTierRow();
     renderPickerPropsBar();
@@ -593,10 +595,14 @@ function renderCategoryBar() {
         if (item.category) categories.add(item.category);
     });
 
+    if (window.selectPlannerModule && typeof plannerGetPlanIds === 'function' && plannerGetPlanIds(true).length > 0) {
+        categories.add(PICKER_MODULE_CATEGORY);
+    }
+
     Array.from(categories).forEach(cat => {
         const btn = document.createElement('button');
         btn.className = `category-btn ${currentPickerCategory === cat ? 'active' : ''}`;
-        btn.innerText = t(cat, 'categories');
+        btn.innerText = cat === PICKER_MODULE_CATEGORY ? '📦 ' + t('Modules', 'ui') : t(cat, 'categories');
         btn.onclick = () => {
             currentPickerCategory = cat;
             renderCategoryBar(); // 刷新按鈕狀態
@@ -646,6 +652,23 @@ function renderItemPicker() {
     const grid = document.getElementById('picker-items-grid');
     const filterText = document.getElementById('itemPickerSearch').value.toLowerCase();
     grid.innerHTML = '';
+
+    // Planner modules (only offered while adding a Planner recipe node)
+    const canPickModule = !!window.selectPlannerModule && typeof plannerGetPlanIds === 'function';
+    if (canPickModule && (currentPickerCategory === PICKER_MODULE_CATEGORY || currentPickerCategory === "[All]") && currentPickerTier <= 0 && currentPickerProps.size === 0) {
+        plannerGetPlanIds(true).forEach(id => {
+            const plan = plannerLibrary.plans[id];
+            if (id === plannerLibrary.activePlanId) return; // a plan can't contain itself
+            if (!plan.name.toLowerCase().includes(filterText)) return;
+            const card = document.createElement('div');
+            card.className = 'picker-item-row picker-module-row';
+            card.innerHTML = `<span class="picker-module-icon">📦</span><span class="picker-item-name">${plan.name.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))}</span><span class="picker-item-tag tag-Module">${t('Module', 'ui')}</span>`;
+            card.onclick = () => { window.selectPlannerModule(id); closeModal('picker-modal'); };
+            grid.appendChild(card);
+        });
+        if (currentPickerCategory === PICKER_MODULE_CATEGORY) return;
+    }
+    if (currentPickerCategory === PICKER_MODULE_CATEGORY) return;
 
     // 將 DB.items 轉換為數組以保持順序（或按 ID 排序）
     const itemsToShow = Object.entries(DB.items).filter(([name, data]) => {

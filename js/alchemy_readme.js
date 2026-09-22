@@ -216,7 +216,7 @@ The chain-link button next to a node's machine-count input toggles **Link Mode**
 
 A node can also reference an entire other plan as a **module**: it exposes that plan's *net* unconnected inputs/outputs as its own ports (i.e. whatever that plan doesn't already produce/consume internally), plus its total fuel/fertilizer draw. Its Node Settings modal shows a **📦 Load Module** button that switches the Planner to that referenced plan. The tool detects circular module references and flags them as an error on the node instead of resolving them.
 
-Select a group of nodes and click **📦 Encapsulate** to create a new plan from the selection and replace it with a module node. The internal connections are retained inside the new module.
+Modules are plans flagged as modules: they live under a separate **📦 Modules** section in Manage Plans (and a separate group in the plan dropdown, so you can still open and edit them). **+ Add Node** lists your modules under a **📦 Modules** category next to the item recipes. Select a group of nodes and click **📦 Encapsulate** to create a new module from the selection and replace it with a module node (internal connections are kept inside). In Manage Plans, **📦 Convert to Module** / **↩ Convert to Plan** switch a plan between the two lists; a module still used by other plans cannot be converted back.
 
 Use **🔀 Optimize Port Order** in the lower-right canvas controls to optimize all port orders; dropping a node also performs a single-node port-order optimization.
 
@@ -626,7 +626,7 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 
 节点也可以整个引用另一个方案作为**模块**：它会把该方案「净」未被内部消耗/产生的输入/输出（即该方案自己无法内部自给自足的部分）暴露成自己的接口，并累计其总燃料/肥料用量。该节点的节点设置弹窗中会显示 **📦 载入模块** 按钮，点击即可将规划器切换到所引用的方案。若侦测到模块间存在循环引用，工具会直接在节点上标示错误，而不会尝试解算。
 
-选取一组节点并点击 **📦 封装**，可从选取内容建立新方案，并在原处替换为模块节点；内部连线会保留在新模块中。
+模块是带有「模块」标记的方案: 在方案管理中列于单独的 **📦 模块** 区块(工具栏的方案下拉也分组显示，因此仍可打开编辑)，**+ 新增节点** 会在物品配方旁的 **📦 模块** 分类中列出你的模块。选取一组节点并点击 **📦 封装**，可从选取内容建立新模块，并在原处替换为模块节点(内部连线会保留)。在方案管理中用 **📦 转换为模块** / **↩ 转换为方案** 在两个列表间切换；仍被其他方案引用的模块无法转回。
 
 使用画布右下角的 **🔀 优化端口顺序** 可优化全部端口顺序；拖放节点后也会自动执行单节点优化。
 
@@ -1037,7 +1037,7 @@ ja: `[EN](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.m
 
 ノードは、別のプラン全体を**モジュール**として参照することもできます。モジュールノードは、そのプランの未接続の入力/出力の*正味*(つまり、そのプランが内部で生産/消費しきれていない分)を自身のポートとして公開し、あわせて燃料/肥料の総消費量も持ちます。ノード設定モーダルには **📦 モジュールを読み込み** ボタンが表示され、プランナーを参照先のプランに切り替えられます。モジュールの循環参照は検出され、解決される代わりにそのノード上でエラーとして表示されます。
 
-複数のノードを選択して **📦 モジュール化** をクリックすると、選択範囲から新しいプランが作成され、元の場所はモジュールノードに置き換えられます。内部の接続は新しいモジュールの中に保持されます。
+モジュールは「モジュール」フラグの付いたプランです。プラン管理では別の **📦 モジュール** セクションに並び(ツールバーのプラン選択でも別グループになるので、開いて編集できます)、**+ ノードを追加** ではアイテムのレシピと並んで **📦 モジュール** カテゴリから選べます。複数のノードを選択して **📦 モジュール化** をクリックすると、選択範囲から新しいモジュールが作成され、元の場所はモジュールノードに置き換えられます(内部の接続は保持されます)。プラン管理の **📦 モジュールに変換** / **↩ プランに変換** で2つの一覧の間を行き来できます。他のプランから使われているモジュールはプランに戻せません。
 
 キャンバス右下の操作ボタンにある **🔀 Optimize Port Order** を使うと、すべてのポートの並び順を最適化できます。ノードをドロップしたときにも、そのノード単体のポート順の最適化が行われます。
 

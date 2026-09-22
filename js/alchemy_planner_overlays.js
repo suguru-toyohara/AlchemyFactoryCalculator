@@ -9,13 +9,14 @@
 function renderPlannerToolbarSelect() {
     const sel = document.getElementById('planner-plan-select');
     if (!sel) return;
-    sel.innerHTML = plannerLibrary.planOrder
-        .filter(id => plannerLibrary.plans[id])
-        .map(id => {
-            const plan = plannerLibrary.plans[id];
-            const selected = id === plannerLibrary.activePlanId ? 'selected' : '';
-            return `<option value="${id}" ${selected}>${_escapeHtml(plan.name)}</option>`;
-        }).join('');
+    const opt = id => {
+        const plan = plannerLibrary.plans[id];
+        const selected = id === plannerLibrary.activePlanId ? 'selected' : '';
+        return `<option value="${id}" ${selected}>${_escapeHtml(plan.name)}</option>`;
+    };
+    const plans = plannerGetPlanIds(false).map(opt).join('');
+    const modules = plannerGetPlanIds(true).map(opt).join('');
+    sel.innerHTML = plans + (modules ? `<optgroup label="📦 ${t('Modules', 'ui')}">${modules}</optgroup>` : '');
 }
 
 /** 切換目前作用中的方案：重新指向 plannerState、重繪整個畫布 */
@@ -88,9 +89,7 @@ function renderPlannerManageList() {
         selectedDependents = new Set(getPlannerModulesUsingPlan(_plannerManageSelectedId).filter(id => id !== _plannerManageSelectedId));
     }
 
-    container.innerHTML = plannerLibrary.planOrder
-        .filter(id => plannerLibrary.plans[id])
-        .map(id => {
+    const rowHtml = (id) => {
             const plan = plannerLibrary.plans[id];
             const isSelected = id === _plannerManageSelectedId;
             const isActive = id === plannerLibrary.activePlanId;
@@ -127,7 +126,12 @@ function renderPlannerManageList() {
                     ${cycleTag}
                     <span class="planner-plan-meta">${_formatPlannerTime(plan.updatedAt)}</span>
                 </div>`;
-        }).join('');
+        };
+    const planRows = plannerGetPlanIds(false).map(rowHtml).join('');
+    const moduleRows = plannerGetPlanIds(true).map(rowHtml).join('');
+    container.innerHTML =
+        `<div class="planner-plan-section-title">${t('Plans', 'ui')}</div>` + (planRows || `<div class="planner-picker-empty">${t('None', 'ui')}</div>`) +
+        `<div class="planner-plan-section-title">📦 ${t('Modules', 'ui')}</div>` + (moduleRows || `<div class="planner-picker-empty">${t('None', 'ui')}</div>`);
 
     container.querySelectorAll('.planner-plan-row').forEach(row => {
         _initPlannerPlanDragHandle(row.querySelector('.planner-plan-drag-handle'), row);
@@ -142,6 +146,28 @@ function _updatePlannerManageActionsState() {
     if (!row) return;
     const disabled = !_plannerManageSelectedId;
     row.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+    const sel = plannerLibrary.plans[_plannerManageSelectedId];
+    const convertBtn = document.getElementById('planner-convert-btn');
+    if (convertBtn) convertBtn.innerText = (sel && sel.isModule) ? '↩ ' + t('Convert to Plan', 'ui') : '📦 ' + t('Convert to Module', 'ui');
+    const importBtn = document.getElementById('planner-import-module-btn');
+    if (importBtn) importBtn.disabled = disabled || !sel || !sel.isModule || _plannerManageSelectedId === plannerLibrary.activePlanId;
+}
+
+/** Toggle the selected plan between plan and module. A module still in use by other plans stays a module. */
+function managePlannerToggleModule() {
+    const id = _plannerManageSelectedId;
+    const plan = plannerLibrary.plans[id];
+    if (!plan) return;
+    if (plan.isModule) {
+        const users = getPlannerModulesUsingPlan(id).filter(x => x !== id);
+        if (users.length > 0) { alert(t('Used by N plans', 'ui').replace('N', users.length)); return; }
+        delete plan.isModule;
+    } else {
+        plan.isModule = true;
+    }
+    savePlannerLibraryMeta();
+    renderPlannerToolbarSelect();
+    renderPlannerManageList();
 }
 
 function selectPlannerManageRow(id) {
