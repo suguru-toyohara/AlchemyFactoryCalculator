@@ -684,6 +684,8 @@ button.reset-btn:hover { background: var(--danger); color: white; }
     color:#eee; border-radius:4px; font-size:0.9em; max-width: 220px;
 }
 .planner-toolbar-divider { width:1px; height:22px; background:var(--border); margin: 0 4px; }
+.planner-toolbar-supply { display:inline-flex; align-items:center; gap:4px; }
+.planner-toolbar-supply .planner-plan-select { max-width: 170px; padding: 4px 6px; font-size: 0.85em; }
 
 .planner-plan-list {
     max-height: 320px; overflow-y:auto; border:1px solid var(--border);
@@ -853,6 +855,8 @@ button.reset-btn:hover { background: var(--danger); color: white; }
     border-radius: 6px 6px 0 0; cursor: move;
 }
 .planner-node-header.heat {background: #512;}
+.planner-node-header.steam {background: #1b3a4a;}
+.planner-picker-variant { font-size: 0.85em; color: #9cf; font-weight: bold; }
 .planner-node-header.fert {background: #202920;}
 .planner-node-header.gold {background: #221;}
 .planner-node-header.module {background: #125;}
@@ -905,6 +909,26 @@ button.reset-btn:hover { background: var(--danger); color: white; }
 .planner-port-out .planner-port-badge { right: -40px; }
 .planner-badge-surplus  { color: var(--warn); }
 .planner-badge-shortage { color: var(--danger); }
+
+/* ---- Dock ports (Steam): socket on the bottom edge of the card ---- */
+.planner-dock-row { display: flex; flex-direction: column; gap: 2px; }
+.planner-dock-row:empty { display: none; }
+.planner-port-dock {
+    justify-content: center; margin: 2px -8px -8px -8px; padding: 4px 8px 6px 8px;
+    border-top: 1px dashed #3a3a3a; color: #9cf;
+}
+.planner-port-dock + .planner-port-dock { margin-top: 8px; }
+.planner-dock-fuel { color: var(--warn); }
+.planner-dock-fert { color: var(--bio); }
+.planner-dock-steam { color: #9cf; }
+.planner-port-dock .planner-port-name { color: inherit; }
+.planner-port-dock .planner-port-name { flex: 0 1 auto; text-align: center; }
+.planner-port-dock .planner-port-dot {
+    left: 50%; right: auto; top: auto; bottom: -13px; transform: translateX(-50%);
+    width: 14px; height: 10px; border-radius: 2px 2px 5px 5px;
+}
+.planner-port-dock .planner-port-badge { left: auto; right: 8px; top: auto; bottom: -16px; transform: none; }
+.planner-node.reversed .planner-port-dock .planner-port-dot { left: 50%; right: auto; transform: translateX(-50%); }
 
 /* Portal node reversed direction: swap visual side of in/out ports */
 .planner-node.reversed .planner-ports-in  { border-right: none; border-left: 1px dashed #3a3a3a; order: 2; }

@@ -166,8 +166,8 @@ The Planner can hold multiple independent **plans**, each with its own set of no
 
 - The dropdown in the toolbar switches between plans; **📁 Manage Plans** opens a modal listing every plan.
 - In the manager you can **drag to reorder**, **rename in place** (double-click the name field that appears), **duplicate**, **delete**, or **export** a single plan as a \`.json\` file. **New Plan** creates a blank plan, and **⭱ Import** loads a previously exported \`.json\`.
-- Every plan keeps its own **undo/redo history** and remembers the **viewport** (pan/zoom) you last left it at for the current browser session.
 - **📦 Import as Module** inserts a selected existing plan directly as a module node in the current canvas.
+- Every plan keeps its own **undo/redo history** and remembers the **viewport** (pan/zoom) you last left it at for the current browser session.
 
 ### Canvas Basics
 
@@ -196,6 +196,13 @@ Opens a modal with:
 - A **recipe-switch list**, grouped by the node's main output item, to swap to any alternative recipe for that item.
 - A **Port Balance** section (only shown when at least one connected port is unbalanced) with one-click buttons per item to adjust the node's machine count so a specific connected input/output exactly matches what its connections need.
 - **Graph Tools**: Select All Upstream, Auto-Layout Upstream (tidies all upstream nodes into a tree layout), Populate All Upstream (recursively auto-generates missing upstream production, see below), and Clear All Upstream.
+
+### Fuel, Fertilizer & Steam (dock ports)
+
+A machine's fuel, fertilizer and steam demands are shown as **dock ports** on the bottom edge of its card (orange = fuel, green = fertilizer, blue = steam). They behave like any input port: drag from a dock to a producer's output, drop on empty canvas or press ⚡ to auto-create the producer, and the flow counts toward port balance and link mode. An unconnected dock shows as a shortage.
+- **Defaults** for the heating device, fuel and fertilizer are chosen in the Planner toolbar (🔥 / 🧪 / 🌿); they are the same values as the Calculator's Logistics panel.
+- **Per node**, override them under **Node Settings → Heating Device / Fuel / Fertilizer** (default: follow the global setting).
+- A machine on a **Steam Heating Pad** burns no fuel; its heat demand becomes a **Steam** demand instead (1 Steam = 20 P). The **Steam Boiler** sits on a Stone/Blast Furnace itself and has three output levels (Low 300 / Mid 1,500 / High 9,000 Steam per minute at 100 / 500 / 3,000 P/s), selectable from its recipe list. Pipe capacity is not modelled.
 
 ### Auto-Generating Upstream Production
 
@@ -373,6 +380,7 @@ When the bundled database (\`alchemy_db.js\`) has a newer version than your loca
 
 ## 🏗️ Project Structure
 
+\`\`\`
 AlchemyFactoryCalculator/
 ├── index.html                      # Main HTML shell, tab layout, modals
 ├── style.css                       # All styles (CSS custom properties, dark theme)
@@ -389,6 +397,7 @@ AlchemyFactoryCalculator/
 │   ├── alchemy_planner.js         # Planner core: canvas, nodes, edges, plan library, view controls
 │   ├── alchemy_planner_calc.js    # Planner flow-resolution engine, auto-layout, module/import logic
 │   └── alchemy_planner_overlays.js # Planner overlays: plan manager, node settings, edge modal, summary panel
+\`\`\`
 
 No build tools, bundlers, or external dependencies. Pure HTML + CSS + vanilla JavaScript.
 
@@ -404,7 +413,6 @@ No build tools, bundlers, or external dependencies. Pure HTML + CSS + vanilla Ja
 ---
 
 *This calculator is a fork of [AlchemyFactoryCalculator](https://github.com/starfi5h/AlchemyFactoryCalculator) by starfi5h, maintained by [suguru-toyohara](https://github.com/suguru-toyohara) with added Japanese localization and additional features. The starfi5h version is itself a fork of the original [AlchemyFactoryCalculator](https://joejoesgit.github.io/AlchemyFactoryCalculator/) by JoeJoesGit, with added Chinese localization, the Cauldron Calculator, the Wiki, the Planner, incremental database update notifications, and various UI enhancements.*  
-*The data is from [AlchemyFactoryData](https://github.com/faultyd3v/AlchemyFactoryData) by faultyd3v.*  
 `,
 
 zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
@@ -438,10 +446,10 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 
 ## 🚀 快速开始
 
-#### 在线使用
+### 在线使用
 在任意现代浏览器中打开 [https://suguru-toyohara.github.io/AlchemyFactoryCalculator](https://suguru-toyohara.github.io/AlchemyFactoryCalculator)，无需安装。
 
-#### 本地使用
+### 本地使用
 1. 下载或克隆本仓库。
 2. 直接用浏览器打开 \`index.html\`。
 3. 无需服务器、构建步骤或任何依赖。
@@ -550,7 +558,7 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 
 ### 建造清单
 
-右侧面板列出当前方案所需的全部机器种类及数量。点击机器名称可展开，查看建造这些机器所需的**原材料总计**。底部的**总计材料需求**区域还会根据堆叠上限估算所需的**库存格数**。
+右侧面板列出当前方案所需的全部机器种类及数量。点击机器名称可展开，查看建造这些机器所需的**原材料总计**。底部的**总计材料需求**区域还会根据堆叠上限估算所需的**库存格数**，并显示机器总数及平铺/紧凑占地地板数。
 
 ### 送往规划器
 
@@ -568,6 +576,7 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 
 - 工具列上的下拉选单可在方案间切换；**📁 管理方案** 打开一个列出所有方案的弹窗。
 - 在管理窗口中可以**拖曳排序**、**就地重新命名**（点击后出现的输入框）、**复制**、**删除**，或将单一方案**导出**为 \`.json\` 文件。**新方案** 建立一个空白方案，**⭱ 导入** 可载入先前导出的 \`.json\` 文件。
+- **📦 导入为模块**可将选中的既有方案直接作为模块节点插入当前画布。
 - 每个方案都拥有各自独立的**复原/取消复原（Undo/Redo）历史**，并会记住你在本次浏览器会话中最后离开该方案时的**视角**（平移/缩放）。
 
 ### 画布基本操作
@@ -579,7 +588,6 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 - 用滑鼠滚轮、触控装置的双指手势，或 **+ / −** 按钮进行**缩放**；**⤢ 缩放至全部可见**（或按 **F** 键）会自动将所有节点纳入视野。
 - **⊞ 网格吸附** 按钮会在三种网格大小与关闭之间循环切换节点拖曳时的吸附行为。
 - **↺ 复原 / ↻ 重做**（或 **Ctrl+Z / Ctrl+Y**）可在该方案的编辑历史中前后移动。
-- **📦 导入为模块**可将选中的既有方案直接作为模块节点插入当前画布。
 
 ### 节点与接口（Ports）
 
@@ -598,6 +606,13 @@ zh: `[English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README
 - 一份依节点主要输出物品分组的**配方切换清单**，可切换为该物品的任一其他配方。
 - **端口平衡（Port Balance）** 区块（仅在至少有一个已连接接口供需不平衡时显示），会针对每个物品提供一键按钮，将节点机器数调整到该输入/输出恰好符合连线所需的量。
 - **图形工具**：选取所有上游节点、自动排版上游节点（将所有上游节点整理成树状排版）、生成全部上游产线（递归自动生成缺少的上游生产，见下方说明）、清除所有上游节点。
+
+### 燃料、肥料与蒸汽(插口)
+
+机器的燃料、肥料与蒸汽需求显示为卡片底部的**插口(停靠端口)**(橙 = 燃料、绿 = 肥料、蓝 = 蒸汽)。它们与普通输入接口一样: 从插口拖到供应节点的输出口，拖到空白画布或点击 ⚡ 可自动生成供应节点，流量计入接口平衡与连动模式。未连接的插口显示为短缺。
+- 加热设备、燃料、肥料的**默认值**在规划器工具栏(🔥 / 🧪 / 🌿)中选择，与计算器物流面板共用同一设置。
+- **按节点**覆盖: 在**节点设置 → 加热设备 / 燃料 / 肥料**中选择(默认跟随全局设置)。
+- 放在**蒸汽加热板**上的机器不消耗燃料，其热值需求转为**蒸汽**需求(1 蒸汽 = 20 P)。**蒸汽锅炉**本身放在石炉/高炉上，输出分三档(Low 300 / Mid 1,500 / High 9,000 蒸汽/分，耗热 100 / 500 / 3,000 P/s)，在配方列表中选择。不计算管道容量。
 
 ### 自动生成上游产线
 
@@ -775,6 +790,7 @@ URL 反映当前状态，可收藏或分享：
 
 ## 🏗️ 项目结构
 
+\`\`\`
 AlchemyFactoryCalculator/
 ├── index.html                      # 主 HTML 框架、标签页布局、模态框
 ├── style.css                       # 所有样式（CSS 自定义属性、暗色主题）
@@ -791,6 +807,7 @@ AlchemyFactoryCalculator/
 │   ├── alchemy_planner.js          # 规划器核心：画布、节点、连线、方案库、视图控制
 │   ├── alchemy_planner_calc.js     # 规划器流量解算引擎、自动排版、模块/汇入逻辑
 │   └── alchemy_planner_overlays.js # 规划器弹窗：方案管理、节点设置、连线弹窗、摘要面板
+\`\`\`
 
 无构建工具、打包器或外部依赖。纯 HTML + CSS + 原生 JavaScript。
 
@@ -1000,6 +1017,13 @@ ja: `[EN](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.m
 - ノードの主な出力アイテムごとにグループ化された**レシピ切り替えリスト**。そのアイテムの任意の代替レシピに切り替えられます。
 - **ポート収支**セクション(接続済みのポートのうち 1 つ以上で収支が合っていない場合にのみ表示)。アイテムごとのワンクリックボタンでノードの機械台数を調整し、特定の接続済み入力/出力を接続先の必要量にぴったり合わせられます。
 - **グラフツール**: 上流ノードをすべて選択、上流ノードを自動レイアウト(上流のノードをすべてツリー状に整列)、上流ノードをすべて生成(不足している上流の生産を再帰的に自動生成。下記参照)、上流ノードをすべて削除。
+
+### 燃料・肥料・蒸気 (差し込み口)
+
+機械の燃料・肥料・蒸気の需要は、カード下辺の**差し込み口(ドックポート)**として表示されます(橙 = 燃料、緑 = 肥料、青 = 蒸気)。通常の入力ポートと同じように扱えます: 差し込み口から供給元の出力へドラッグ、空白にドロップまたは ⚡ で供給元を自動生成、流量はポート収支や連動モードに含まれます。未接続の差し込み口は不足として表示されます。
+- 加熱設備・燃料・肥料の**既定**は、プランナーのツールバー(🔥 / 🧪 / 🌿)で選びます。計算機の物流パネルと同じ値を共有します。
+- **ノードごと**に上書きするには、**ノード設定 → 加熱設備 / 燃料 / 肥料**で選びます(既定は全体設定に従う)。
+- **蒸気加熱パッド**の上の機械は燃料を消費せず、熱需要が**蒸気**の需要になります(1蒸気 = 20 P)。**蒸気ボイラー**自体は石炉/高温炉の上に置き、出力は3段階(Low 300 / Mid 1,500 / High 9,000 蒸気/分、消費熱 100 / 500 / 3,000 P/s)でレシピ一覧から選びます。パイプの流量制限は扱いません。
 
 ### 上流の生産の自動生成
 

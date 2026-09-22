@@ -408,6 +408,7 @@ function renderPlannerNodeModalBody(nodeId) {
     `
         <div class="planner-modifier-section">
             ${_buildPlannerNodeModifierHtml(node, rawRecipe)}
+            ${_buildPlannerNodeHeatingDeviceHtml(node, rawRecipe)}
         </div>
         <div style="height:1px; background:var(--border); margin:12px 0;"></div>
                 <div class="planner-recipe-switch-section">
@@ -530,6 +531,109 @@ function _buildPlannerNodeModifierHtml(node, rawRecipe) {
         </div>`;
 }
 
+/** Heating device / fuel / fertilizer selectors. Empty value = follow the global setting (Planner toolbar / Calculator Logistics). */
+function _buildPlannerNodeHeatingDeviceHtml(node, rawRecipe) {
+    const machineDef = DB.machines[rawRecipe.machine];
+    const needsHeat = !!(machineDef && machineDef.heatCost);
+    const needsFert = (rawRecipe.nutrientCost || 0) > 0;
+    if (!needsHeat && !needsFert) return '';
+
+    const row = (label, selectHtml) => `
+        <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+            <span style="font-size:0.82em; color:#aaa; white-space:nowrap; min-width:64px;">${label}:</span>
+            ${selectHtml}
+        </div>`;
+    const followOpt = (current, selected) => `<option value=""${selected ? ' selected' : ''}>${t('Follow global setting')} (${current})</option>`;
+    let html = '';
+
+    if (needsHeat) {
+        const globalName = DB.settings.selectedHeatingDevice || "Stone Furnace";
+        const options = Object.entries(DB.machines)
+            .filter(([, def]) => def.isGenerator)
+            .map(([name]) => `<option value="${name}"${node.heatingDevice === name ? ' selected' : ''}>${t(name, 'machines')}</option>`)
+            .join('');
+        html += row(t('Heating Device'), `<select style="flex:1; padding:3px 6px; font-size:0.9em;" onchange="plannerSetNodeHeatingDevice('${node.id}', this.value)">
+                ${followOpt(t(globalName, 'machines'), !node.heatingDevice)}${options}</select>`);
+
+        if (!plannerGetNodeHeatingDevice(node).def.steamHeated) {
+            const options = plannerGetFuelOptions()
+                .map(o => `<option value="${_escapeHtml(toEnglishItemName(o.name))}"${node.fuel === toEnglishItemName(o.name) ? ' selected' : ''}>${_escapeHtml(o.name)} (${o.value} ${o.unit})</option>`)
+                .join('');
+            html += row(t('Fuel'), `<select style="flex:1; padding:3px 6px; font-size:0.9em;" onchange="plannerSetNodeFuel('${node.id}', this.value)">
+                ${followOpt(_escapeHtml(DB.settings.defaultFuel), !node.fuel)}${options}</select>`);
+        }
+    }
+    if (needsFert) {
+        const options = plannerGetFertOptions()
+            .map(o => `<option value="${_escapeHtml(toEnglishItemName(o.name))}"${node.fert === toEnglishItemName(o.name) ? ' selected' : ''}>${_escapeHtml(o.name)} (${o.value} ${o.unit})</option>`)
+            .join('');
+        html += row(t('Fertilizer'), `<select style="flex:1; padding:3px 6px; font-size:0.9em;" onchange="plannerSetNodeFert('${node.id}', this.value)">
+            ${followOpt(_escapeHtml(DB.settings.defaultFert), !node.fert)}${options}</select>`);
+    }
+    return `<div style="margin-top:10px; padding-top:4px; border-top:1px dashed var(--border);">${html}</div>`;
+}
+
+function _plannerAfterNodeSupplyChange(nodeId) {
+    renderPlanner(); // full rebuild: header color (heat/steam/fert) and dock rows change
+    renderPlannerNodeModalBody(nodeId);
+    savePlannerState();
+}
+function plannerSetNodeHeatingDevice(nodeId, value) {
+    const node = plannerState.nodes[nodeId];
+    if (!node) return;
+    if (value && DB.machines[value]?.isGenerator) node.heatingDevice = value;
+    else delete node.heatingDevice;
+    _plannerAfterNodeSupplyChange(nodeId);
+}
+function plannerSetNodeFuel(nodeId, value) {
+    const node = plannerState.nodes[nodeId];
+    if (!node) return;
+    if (value) node.fuel = value; else delete node.fuel; // English item name
+    _plannerAfterNodeSupplyChange(nodeId);
+}
+function plannerSetNodeFert(nodeId, value) {
+    const node = plannerState.nodes[nodeId];
+    if (!node) return;
+    if (value) node.fert = value; else delete node.fert;
+    _plannerAfterNodeSupplyChange(nodeId);
+}
+
+/* ==========================================================================
+   SECTION: TOOLBAR DEFAULTS (heating device / fuel / fertilizer)
+   Shared with the Calculator's Logistics panel through DB.settings.
+   ========================================================================== */
+
+function renderPlannerToolbarSupplySelects() {
+    const heat = document.getElementById('planner-heating-select');
+    const fuel = document.getElementById('planner-fuel-select');
+    const fert = document.getElementById('planner-fert-select');
+    if (!heat || !fuel || !fert) return;
+    heat.innerHTML = Object.entries(DB.machines).filter(([, d]) => d.isGenerator)
+        .map(([name]) => `<option value="${name}">${t(name, 'machines')}</option>`).join('');
+    fuel.innerHTML = plannerGetFuelOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value} P)</option>`).join('');
+    fert.innerHTML = plannerGetFertOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value} V)</option>`).join('');
+    heat.value = DB.settings.selectedHeatingDevice || "Stone Furnace";
+    fuel.value = DB.settings.defaultFuel;
+    fert.value = DB.settings.defaultFert;
+    heat.title = t('Heating Device'); fuel.title = t('Fuel Source'); fert.title = t('Fertilizer Source');
+}
+
+function onPlannerToolbarSupplyChange() {
+    const heat = document.getElementById('planner-heating-select');
+    const fuel = document.getElementById('planner-fuel-select');
+    const fert = document.getElementById('planner-fert-select');
+    if (heat?.value && DB.machines[heat.value]?.isGenerator) DB.settings.selectedHeatingDevice = heat.value;
+    if (fuel?.value && DB.items[fuel.value]?.heat) DB.settings.defaultFuel = fuel.value;
+    if (fert?.value && DB.items[fert.value]?.nutrientValue) DB.settings.defaultFert = fert.value;
+    persist();
+    // keep the Calculator's Logistics panel in sync
+    const map = { heatingDeviceSelect: DB.settings.selectedHeatingDevice, fuelSelect: DB.settings.defaultFuel, fertSelect: DB.settings.defaultFert };
+    Object.entries(map).forEach(([id, v]) => { const el = document.getElementById(id); if (el && v) el.value = v; });
+    if (typeof calculate === 'function') calculate();
+    renderPlanner();
+    savePlannerState();
+}
+
 function _plannerFormatIOList(ioObj) {
     const entries = Object.entries(ioObj || {});
     if (entries.length === 0) return '';
@@ -542,6 +646,18 @@ function _plannerFormatIOList(ioObj) {
             <span style="font-size:0.75em; color:var(--accent); font-weight:bold;">×${qtyStr}</span>
         </span>`;
     }).join('');
+}
+
+/** Variant label for recipes that differ only by a suffix in their id, e.g. "Steam Boiler (High)" → "High".
+ *  Lets Low/Mid/High boiler levels be told apart in pickers where inputs/outputs look identical. */
+function _plannerRecipeVariantLabel(recipe, siblings) {
+    if (!recipe || !recipe.id) return '';
+    const sameKeys = (a, b) => { const ka = Object.keys(a || {}).sort(), kb = Object.keys(b || {}).sort(); return ka.length === kb.length && ka.every((k, i) => k === kb[i]); };
+    // Only label when another candidate would look identical (same machine, same input items)
+    const ambiguous = (siblings || []).some(o => o && o !== recipe && o.id !== recipe.id && o.machine === recipe.machine && sameKeys(o.inputs, recipe.inputs));
+    if (!ambiguous) return '';
+    const m = /\(([^()]+)\)\s*$/.exec(recipe.id);
+    return m ? t(m[1].trim()) : '';
 }
 
 /** 列出所有輸出 mainOut 的配方 (與目前節點的配方同群)，點擊即切換該節點的 recipeId */
@@ -568,7 +684,7 @@ function _buildPlannerNodeRecipeSwitchHtml(node, mainOut) {
                     ${inputs}<span class="planner-picker-arrow">→</span><img src="img/item${outDef.id ?? 0}.png" width="20" height="20">
                 </div>
                 <span class="planner-picker-machine">
-                    <img src="${machineIconSrc}" width="18" height="18" onerror="this.style.opacity='0'">${t(r.machine, 'machines')}
+                    <img src="${machineIconSrc}" width="18" height="18" onerror="this.style.opacity='0'">${t(r.machine, 'machines')}${_plannerRecipeVariantLabel(r, candidates) ? ` <span class="planner-picker-variant">${_plannerRecipeVariantLabel(r, candidates)}</span>` : ''}
                 </span>
                 ${isActive ? '<span style="color:var(--accent); font-weight:bold; margin-left:4px;">✓</span>' : ''}
             </div>`;
@@ -1058,6 +1174,7 @@ function renderPlannerRecipePickerList(filterText) {
         return;
     }
 
+    const _plannerPickerSiblings = _plannerPickerFiltered.map(c => c.recipe);
     list.innerHTML = _plannerPickerFiltered.map((c, idx) => {
         if (!c.recipe) return;
         const inputIcons = Object.keys(c.recipe.inputs || {}).map(name => {
@@ -1074,7 +1191,7 @@ function renderPlannerRecipePickerList(filterText) {
                 </div>
                 <span class="planner-picker-name">${c.mainOutName}</span>
                 <span class="planner-picker-machine">
-                    <img src="${machineIconSrc}" width="18" height="18" onerror="this.style.opacity='0'">${c.machineName}
+                    <img src="${machineIconSrc}" width="18" height="18" onerror="this.style.opacity='0'">${c.machineName}${_plannerRecipeVariantLabel(c.recipe, _plannerPickerSiblings) ? ` <span class="planner-picker-variant">${_plannerRecipeVariantLabel(c.recipe, _plannerPickerSiblings)}</span>` : ''}
                 </span>
             </div>`;
     }).join('');
@@ -1339,6 +1456,7 @@ function togglePlannerSummarySection(key) {
 function computePlannerSummaryStats(flows) {
     const machineCounts = {};
     let heatTotal = 0, fertTotal = 0, goldTotal = 0;
+    const dockTotals = {}; // { fuel: {item: rate}, fert: {...}, steam: {...} }
 
     Object.values(plannerState.nodes).forEach(node => {
         const ports = flows.nodePortsCache[node.id];
@@ -1350,6 +1468,12 @@ function computePlannerSummaryStats(flows) {
         heatTotal += ports.heatItemsPerMin || 0;
         fertTotal += ports.fertItemsPerMin || 0;
         goldTotal += ports.goldCostPerMin || 0;
+        // per-item fuel / fertilizer / steam demand (dock ports), regardless of which node overrides what
+        ports.inputs.forEach(p => {
+            if (!p.dock) return;
+            const bucket = dockTotals[p.dock] || (dockTotals[p.dock] = {});
+            bucket[p.item] = (bucket[p.item] || 0) + p.rate;
+        });
     });
 
     const outputSurplus = {};
@@ -1369,7 +1493,7 @@ function computePlannerSummaryStats(flows) {
         if (def && def.buyPrice) goldTotal += def.buyPrice * qty;
     });
 
-    return { machineCounts, heatTotal, fertTotal, outputSurplus, inputShortage, goldTotal };
+    return { machineCounts, heatTotal, fertTotal, dockTotals, outputSurplus, inputShortage, goldTotal };
 }
 
 function renderPlannerSummary(flows) {
@@ -1404,14 +1528,14 @@ function renderPlannerSummary(flows) {
     if (stats.goldTotal > 0.0001) {
         costRows += `<div class="planner-summary-row"><img src="img/copper.png" class="item-icon-small"><span>${t('Coin', 'ui')}</span><span class="planner-summary-val" style="color:var(--gold);">${Math.ceil(stats.goldTotal).toLocaleString()}/m</span></div>`;
     }
-    if (stats.heatTotal > 0.0001) {
-        const fuelDef = DB.items[DB.settings.defaultFuel] || {};
-        costRows += `<div class="planner-summary-row"><img src="img/item${fuelDef.id ?? 0}.png" class="item-icon-small"><span>${DB.settings.defaultFuel}</span><span class="planner-summary-val" style="color:var(--fuel);">${formatVal(stats.heatTotal)}/m</span></div>`;
-    }
-    if (stats.fertTotal > 0.0001) {
-        const fertDef = DB.items[DB.settings.defaultFert] || {};
-        costRows += `<div class="planner-summary-row"><img src="img/item${fertDef.id ?? 0}.png" class="item-icon-small"><span>${DB.settings.defaultFert}</span><span class="planner-summary-val" style="color:var(--bio);">${formatVal(stats.fertTotal)}/m</span></div>`;
-    }
+    const dockColors = { fuel: 'var(--fuel)', steam: '#9cf', fert: 'var(--bio)' };
+    ['fuel', 'steam', 'fert'].forEach(role => {
+        Object.entries(stats.dockTotals[role] || {}).forEach(([item, rate]) => {
+            if (!(rate > 0.0001)) return;
+            const def = DB.items[item] || {};
+            costRows += `<div class="planner-summary-row"><img src="img/item${def.id ?? 0}.png" class="item-icon-small"><span>${item}</span><span class="planner-summary-val" style="color:${dockColors[role]};">${formatVal(rate)}/m</span></div>`;
+        });
+    });
     if (!costRows) costRows = `<div class="planner-summary-empty">${t('None', 'ui')}</div>`;
 
     // --- Section 2: Machines ---

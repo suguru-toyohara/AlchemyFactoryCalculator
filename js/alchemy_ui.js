@@ -519,6 +519,7 @@ function onLogisticsChange() {
     DB.settings.selectedHeatingDevice = curHeatingDevice;
     persist();
     calculate();
+    if (typeof renderPlannerToolbarSupplySelects === 'function') renderPlannerToolbarSupplySelects();
 }
 
 function saveCalcUISettings() {

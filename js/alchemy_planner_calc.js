@@ -81,7 +81,58 @@ function plannerGetRecipeTime(recipe) {
  * input/output/heat/fert per-min 速率，不受任何節點的 machineCount 影響。
  * 回傳: { recipe, inputsPerMachine, outputsPerMachine, heatItemsPerMachine, fertItemsPerMachine, goldCostPerMachine, errorCode }
  */
-function plannerGetRecipeRates(recipeId, recipeModifiers) {    
+/* --------------------------------------------------------------------------
+   DOCK PORTS (fuel / fertilizer / steam)
+   A machine's fuel, fertilizer and steam demands are exposed as input ports
+   flagged `dock: 'fuel' | 'fert' | 'steam'`. They are rendered as sockets on
+   the bottom edge of the card (renderPlannerDockHtml) but are ordinary input
+   ports for the flow solver, so edges / port balance / auto-upstream / modules
+   all work unchanged. A machine on a Steam Heating Pad needs steam instead of
+   fuel (1 Steam = heatPerSteam P).
+
+   Per-node overrides live on the node: node.heatingDevice (machine key),
+   node.fuel / node.fert (English item names). Unset = follow DB.settings
+   (selectedHeatingDevice / defaultFuel / defaultFert, shared with the
+   Calculator's Logistics panel and the Planner toolbar).
+   -------------------------------------------------------------------------- */
+function plannerSteamItemName() { return getCurrentItemName('Steam'); }
+
+/** Per-node heating device, falling back to the global Calculator setting. */
+function plannerGetNodeHeatingDevice(node) {
+    const name = node?.heatingDevice || DB.settings.selectedHeatingDevice || "Stone Furnace";
+    const def = DB.machines[name];
+    if (def?.isGenerator) return { name, def };
+    const fallback = DB.machines["Stone Furnace"];
+    return fallback ? { name: "Stone Furnace", def: fallback } : { name, def: { heatSelf: 0, slots: 3 } };
+}
+
+/** Per-node fuel / fertilizer item (current-language name), falling back to the global setting. */
+function plannerGetNodeFuel(node) {
+    const own = node?.fuel ? getCurrentItemName(node.fuel) : null;
+    return (own && DB.items[own]?.heat) ? own : DB.settings.defaultFuel;
+}
+function plannerGetNodeFert(node) {
+    const own = node?.fert ? getCurrentItemName(node.fert) : null;
+    return (own && DB.items[own]?.nutrientValue) ? own : DB.settings.defaultFert;
+}
+
+/** Selectable fuels / fertilizers, sorted by value (same lists as the Calculator's Logistics panel) */
+function plannerGetFuelOptions() {
+    return Object.entries(DB.items).filter(([, d]) => d.heat).sort((a, b) => b[1].heat - a[1].heat).map(([name, d]) => ({ name, value: d.heat, unit: 'P' }));
+}
+function plannerGetFertOptions() {
+    return Object.entries(DB.items).filter(([, d]) => d.nutrientValue).sort((a, b) => b[1].nutrientValue - a[1].nutrientValue).map(([name, d]) => ({ name, value: d.nutrientValue, unit: 'V' }));
+}
+
+/** Add a dock demand as an input port. If the item is already a recipe input, the rates merge into that side port. */
+function _plannerPushDockInput(inputs, item, rate, dock) {
+    if (!(rate > 0)) return;
+    const existing = inputs.find(p => p.item === item);
+    if (existing) existing.rate += rate;
+    else inputs.push({ item, rate, dock });
+}
+
+function plannerGetRecipeRates(recipeId, recipeModifiers, nodeOpts = null) {    
     const recipe = getRecipeById(recipeId, recipeModifiers);
     if (!recipe) {
         const rawRecipe = plannerGetRawRecipe(recipeId);
@@ -141,12 +192,10 @@ function plannerGetRecipeRates(recipeId, recipeModifiers) {
 
     // 燃料消耗 (heatCost -> 燃料物品/分鐘, 每台機器)
     let heatItemsPerMachine = 0;
+    let steamPerMachine = 0;
     const machineDef = DB.machines[recipe.machine];
     if (machineDef && machineDef.heatCost) {
-        const heatingDeviceName = DB.settings.selectedHeatingDevice || "Stone Furnace";
-        const heatingDevice = DB.machines[heatingDeviceName]?.isGenerator
-            ? DB.machines[heatingDeviceName]
-            : (DB.machines["Stone Furnace"] || { heatSelf: 0, slots: 3 });
+        const heatingDevice = plannerGetNodeHeatingDevice(nodeOpts).def;
         const slotsRequired = machineDef.slotsRequired || 1;
         const heatingSlots = heatingDevice.slots || 3;
         let activeHeat = machineDef.heatCost * speedMult;
@@ -154,18 +203,28 @@ function plannerGetRecipeRates(recipeId, recipeModifiers) {
         const heatingDevicesNeededPerMachine = 1 / (heatingSlots / slotsRequired);
         const totalHeatPerSecPerMachine = heatingDevicesNeededPerMachine * (heatingDevice.heatSelf || 0) * speedMult
             + activeHeat;
-        const fuelDef = DB.items[DB.settings.defaultFuel] || {};
-        const grossFuelEnergy = (fuelDef.heat || 1) * (1 + lvlFuel * 0.10);
-        heatItemsPerMachine = (totalHeatPerSecPerMachine * 60) / grossFuelEnergy;
+        if (heatingDevice.steamHeated) {
+            // Steam Heating Pad: heat is supplied as steam through the dock port
+            steamPerMachine = (totalHeatPerSecPerMachine * 60) / (heatingDevice.heatPerSteam || 20);
+            _plannerPushDockInput(inputsPerMachine, plannerSteamItemName(), steamPerMachine, 'steam');
+        } else {
+            const fuelName = plannerGetNodeFuel(nodeOpts);
+            const fuelDef = DB.items[fuelName] || {};
+            const grossFuelEnergy = (fuelDef.heat || 1) * (1 + lvlFuel * 0.10);
+            heatItemsPerMachine = (totalHeatPerSecPerMachine * 60) / grossFuelEnergy;
+            _plannerPushDockInput(inputsPerMachine, fuelName, heatItemsPerMachine, 'fuel');
+        }
     }
 
     // 肥料消耗 (Nursery, 每台機器)
     let fertItemsPerMachine = 0;
     if (nutrientCost > 0) {
         const totalNutrientsPerMinPerMachine = batchesPerMinPerMachine * nutrientCost;
-        const fertDef = DB.items[DB.settings.defaultFert] || { nutrientValue: 144 };
+        const fertName = plannerGetNodeFert(nodeOpts);
+        const fertDef = DB.items[fertName] || { nutrientValue: 144 };
         const grossFertVal = fertDef.nutrientValue * (1 + lvlFert * 0.10);
         fertItemsPerMachine = totalNutrientsPerMinPerMachine / grossFertVal;
+        _plannerPushDockInput(inputsPerMachine, fertName, fertItemsPerMachine, 'fert');
     }
 
     // 計算 gold cost：僅無輸入配方 (Purchasing Portal / Bank Portal 等) 才需要計算
@@ -182,7 +241,7 @@ function plannerGetRecipeRates(recipeId, recipeModifiers) {
         goldCostPerMachine = mainOutRate * unitPrice;
     }
 
-    return { recipe, inputsPerMachine, outputsPerMachine, heatItemsPerMachine, fertItemsPerMachine, goldCostPerMachine, errorCode: '' };
+    return { recipe, inputsPerMachine, outputsPerMachine, heatItemsPerMachine, steamPerMachine, fertItemsPerMachine, goldCostPerMachine, errorCode: '' };
 }
 
 /**
@@ -199,9 +258,10 @@ function computeNodePorts(node) {
 
     const mc = node.machineCount;
     result.recipe = rates.recipe;
-    result.inputs = rates.inputsPerMachine.map(p => ({ item: p.item, rate: p.rate * mc }));
+    result.inputs = rates.inputsPerMachine.map(p => ({ item: p.item, rate: p.rate * mc, dock: p.dock }));
     result.outputs = rates.outputsPerMachine.map(p => ({ item: p.item, rate: p.rate * mc }));
     result.heatItemsPerMin = rates.heatItemsPerMachine * mc;
+    result.steamPerMin = (rates.steamPerMachine || 0) * mc;
     result.fertItemsPerMin = rates.fertItemsPerMachine * mc;
     result.goldCostPerMin = rates.goldCostPerMachine * mc;
     return result;
@@ -220,7 +280,7 @@ function plannerGetNodeRates(node) {
     if (node.kind === 'note') return null;
     if (node.kind === 'portal') return plannerGetPortalRates(node);
     if (node.moduleId) return plannerGetModuleRates(node.moduleId);
-    return plannerGetRecipeRates(node.recipeId, node.recipeModifiers);
+    return plannerGetRecipeRates(node.recipeId, node.recipeModifiers, node);
 }
 
 /**
@@ -241,7 +301,7 @@ function plannerGetModuleRates(moduleId) {
 
         return {
             recipe: null,
-            inputsPerMachine: Object.entries(base.inputShortage).map(([item, qty]) => ({ item, rate: qty })),
+            inputsPerMachine: Object.entries(base.inputShortage).map(([item, qty]) => ({ item, rate: qty, dock: base.inputShortageDock[item] })),
             outputsPerMachine: Object.entries(base.outputSurplus).map(([item, qty]) => ({ item, rate: qty })),
             heatItemsPerMachine: base.heatTotal,
             fertItemsPerMachine: base.fertTotal,
@@ -266,6 +326,7 @@ function _computeFlowsForPlanData(plan) {
     const flow = plannerResolveFlows(plan.data);
 
     const inputShortage = {};
+    const inputShortageDock = {}; // item -> dock role when every short port for it is a dock port
     const outputSurplus = {};
     let heatTotal = 0, fertTotal = 0, goldCostTotal = 0;
 
@@ -282,10 +343,15 @@ function _computeFlowsForPlanData(plan) {
         const item = parts[1];
         const dir = parts[2];
         if (dir === 'out') outputSurplus[item] = (outputSurplus[item] || 0) + val;
-        else inputShortage[item] = (inputShortage[item] || 0) + val;
+        else {
+            inputShortage[item] = (inputShortage[item] || 0) + val;
+            const dock = flow.portDock[key];
+            if (!(item in inputShortageDock)) inputShortageDock[item] = dock;
+            else if (inputShortageDock[item] !== dock) inputShortageDock[item] = undefined;
+        }
     });
 
-    return { inputShortage: inputShortage, outputSurplus: outputSurplus, heatTotal: heatTotal, fertTotal: fertTotal, goldCostTotal: goldCostTotal };
+    return { inputShortage, inputShortageDock, outputSurplus, heatTotal, fertTotal, goldCostTotal };
 }
 
 
@@ -334,8 +400,9 @@ function plannerResolveFlows(planData = null) {
     }
 
     const portTheoretical = {};
+    const portDock = {}; // inKey -> 'fuel' | 'fert' | 'steam' for dock ports
     Object.entries(nodePortsCache).forEach(([nodeId, ports]) => {
-        ports.inputs.forEach(p => { portTheoretical[plannerPortKey(nodeId, p.item, 'in')] = p.rate; });
+        ports.inputs.forEach(p => { const k = plannerPortKey(nodeId, p.item, 'in'); portTheoretical[k] = p.rate; if (p.dock) portDock[k] = p.dock; });
         ports.outputs.forEach(p => { portTheoretical[plannerPortKey(nodeId, p.item, 'out')] = p.rate; });
     });
 
@@ -358,7 +425,7 @@ function plannerResolveFlows(planData = null) {
         portRemaining[inKey] = demand - flow;
     });
 
-    const flows = { nodePortsCache, portTheoretical, portRemaining, portConnections, edgeFlow };
+    const flows = { nodePortsCache, portTheoretical, portDock, portRemaining, portConnections, edgeFlow };
     if (isMain) _plannerLastFlows = flows;
     return flows;
 }

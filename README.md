@@ -190,6 +190,13 @@ Opens a modal with:
 - A **Port Balance** section (only shown when at least one connected port is unbalanced) with one-click buttons per item to adjust the node's machine count so a specific connected input/output exactly matches what its connections need.
 - **Graph Tools**: Select All Upstream, Auto-Layout Upstream (tidies all upstream nodes into a tree layout), Populate All Upstream (recursively auto-generates missing upstream production, see below), and Clear All Upstream.
 
+### Fuel, Fertilizer & Steam (dock ports)
+
+A machine's fuel, fertilizer and steam demands are shown as **dock ports** on the bottom edge of its card (orange = fuel, green = fertilizer, blue = steam). They behave like any input port: drag from a dock to a producer's output, drop on empty canvas or press ⚡ to auto-create the producer, and the flow counts toward port balance and link mode. An unconnected dock shows as a shortage.
+- **Defaults** for the heating device, fuel and fertilizer are chosen in the Planner toolbar (🔥 / 🧪 / 🌿); they are the same values as the Calculator's Logistics panel.
+- **Per node**, override them under **Node Settings → Heating Device / Fuel / Fertilizer** (default: follow the global setting).
+- A machine on a **Steam Heating Pad** burns no fuel; its heat demand becomes a **Steam** demand instead (1 Steam = 20 P). The **Steam Boiler** sits on a Stone/Blast Furnace itself and has three output levels (Low 300 / Mid 1,500 / High 9,000 Steam per minute at 100 / 500 / 3,000 P/s), selectable from its recipe list. Pipe capacity is not modelled.
+
 ### Auto-Generating Upstream Production
 
 The **⚡ button** on a node's machine-count row inspects that node's unmet input demand and auto-creates one upstream node per missing input (using its preferred recipe), sized and pre-connected to exactly cover the shortfall, laid out to the node's left. **Populate All Upstream** (in the Node Settings modal) repeats this recursively until the whole upstream chain has no more shortages, skipping recipes that would recurse into themselves.
