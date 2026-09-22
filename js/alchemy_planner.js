@@ -1063,7 +1063,13 @@ function renderPlannerPortRow(nodeId, port, dir, flows, dock = false) {
     const icon = `<img src="img/item${itemDef.id ?? 0}.png" width="16" height="16">`;
     const name = `<span class="planner-port-name">${port.item}</span>`;
     const rate = `<span class="planner-port-rate">${formatVal(port.rate)}</span>`;
-    if (dock) return `<div class="planner-port planner-port-in planner-port-dock planner-dock-${port.dock} ${rateClass}" title="${t(PLANNER_DOCK_LABELS[port.dock] || '', 'ui')}: ${port.item}">${icon}${rate}${name}${dot}${badgeHtml}</div>`;
+    if (dock) {
+        const clickable = port.dock === 'fuel' || port.dock === 'fert';
+        const labelAttrs = clickable
+            ? ` class="planner-dock-label clickable" title="${t('Click to change', 'ui')}" onclick="openPlannerDockPickerMenu('${nodeId}', '${port.dock}', event.clientX, event.clientY)"`
+            : ` class="planner-dock-label"`;
+        return `<div class="planner-port planner-port-in planner-port-dock planner-dock-${port.dock} ${rateClass}" title="${t(PLANNER_DOCK_LABELS[port.dock] || '', 'ui')}: ${port.item}"><span${labelAttrs}>${icon}${rate}${name}</span>${dot}${badgeHtml}</div>`;
+    }
     if (dir === 'in') return `<div class="planner-port planner-port-in ${rateClass}" title="${port.item}">${badgeHtml}${dot}${rate}${icon}${name}</div>`;
     return `<div class="planner-port planner-port-out ${rateClass}" title="${port.item}">${name}${icon}${rate}${dot}${badgeHtml}</div>`;
 }
@@ -1545,6 +1551,7 @@ function attachPlannerPortDragHandlers() {
     layer.addEventListener('pointerdown', (e) => {
         const row = e.target.closest('.planner-port');
         if (!row) return;
+        if (e.target.closest('.planner-dock-label.clickable')) { e.stopPropagation(); return; } // label click opens the supply picker
         const dot = row.querySelector('.planner-port-dot');
         if (!dot) return;
         e.stopPropagation();

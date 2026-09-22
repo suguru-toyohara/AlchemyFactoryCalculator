@@ -521,6 +521,7 @@ window.ALCHEMY_I18N = {
         "Low": "低",
         "Fuel": "燃料",
         "Fertilizer": "肥料",
+        "Click to change": "点击更改",
         "Follow global setting": "跟随全局设置",
         "Missing Custom Input": "尚未指定自订输入物品",
         "CONSUME": "消耗",

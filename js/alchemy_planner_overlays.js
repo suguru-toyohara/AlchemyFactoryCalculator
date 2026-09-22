@@ -599,6 +599,38 @@ function plannerSetNodeFert(nodeId, value) {
     _plannerAfterNodeSupplyChange(nodeId);
 }
 
+/** Floating menu opened by clicking a fuel / fertilizer dock label: pick this node's supply item in place.
+ *  Reuses the recipe-picker panel id/styles so outside-click handling and positioning are shared. */
+function openPlannerDockPickerMenu(nodeId, role, clientX, clientY) {
+    const node = plannerState.nodes[nodeId];
+    if (!node || (role !== 'fuel' && role !== 'fert')) return;
+    const isFuel = role === 'fuel';
+    const options = isFuel ? plannerGetFuelOptions() : plannerGetFertOptions();
+    const currentOverride = isFuel ? node.fuel : node.fert;
+    const globalName = isFuel ? DB.settings.defaultFuel : DB.settings.defaultFert;
+    const setter = isFuel ? 'plannerSetNodeFuel' : 'plannerSetNodeFert';
+
+    closePlannerRecipePickerMenu();
+    const panel = document.createElement('div');
+    panel.id = 'planner-recipe-picker';
+    panel.className = 'planner-recipe-picker';
+    const rowHtml = (value, label, def, active) => `
+        <div class="planner-picker-row" style="${active ? 'background:rgba(76,175,80,0.12); border:1px solid var(--accent);' : 'border:1px solid transparent;'}"
+             onclick="${setter}('${nodeId}', '${_escapeHtml(value)}'); closePlannerRecipePickerMenu();">
+            ${def ? `<img src="img/item${def.id ?? 0}.png" width="20" height="20">` : '<span style="width:20px;display:inline-block;"></span>'}
+            <span class="planner-picker-name">${label}</span>
+            ${active ? '<span style="color:var(--accent); font-weight:bold; margin-left:auto;">✓</span>' : ''}
+        </div>`;
+    const listHtml = rowHtml('', `${t('Follow global setting')} (${_escapeHtml(globalName)})`, DB.items[globalName], !currentOverride)
+        + options.map(o => rowHtml(toEnglishItemName(o.name), `${_escapeHtml(o.name)} <span style="color:#888; font-size:0.85em;">(${o.value} ${o.unit})</span>`, DB.items[o.name], currentOverride === toEnglishItemName(o.name))).join('');
+    panel.innerHTML = `
+        <div class="planner-picker-header">${t(isFuel ? 'Fuel' : 'Fertilizer')}</div>
+        <div class="planner-picker-list">${listHtml}</div>`;
+    document.body.appendChild(panel);
+    positionPlannerFloatingPanel(panel, clientX, clientY);
+    setTimeout(() => document.addEventListener('mousedown', _onPlannerPickerOutsideClick), 0);
+}
+
 /* ==========================================================================
    SECTION: TOOLBAR DEFAULTS (heating device / fuel / fertilizer)
    Shared with the Calculator's Logistics panel through DB.settings.

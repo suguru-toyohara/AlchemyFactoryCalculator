@@ -341,6 +341,7 @@ window.ALCHEMY_I18N_JA = {
         "High": "高",
         "Mid": "中",
         "Low": "低",
+        "Click to change": "クリックで変更",
         "Follow global setting": "全体設定に従う",
         "Missing Custom Input": "カスタム入力アイテムが未指定",
         "CONSUME": "消費",

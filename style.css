@@ -922,6 +922,9 @@ button.reset-btn:hover { background: var(--danger); color: white; }
 .planner-dock-fert { color: var(--bio); }
 .planner-dock-steam { color: #9cf; }
 .planner-port-dock .planner-port-name { color: inherit; }
+.planner-dock-label { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.planner-dock-label.clickable { cursor: pointer; border-bottom: 1px dotted currentColor; }
+.planner-dock-label.clickable:hover { filter: brightness(1.3); }
 .planner-port-dock .planner-port-name { flex: 0 1 auto; text-align: center; }
 .planner-port-dock .planner-port-dot {
     left: 50%; right: auto; top: auto; bottom: -13px; transform: translateX(-50%);
