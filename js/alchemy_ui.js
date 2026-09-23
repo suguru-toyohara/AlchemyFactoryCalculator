@@ -533,7 +533,7 @@ function saveCalcUISettings() {
     persist();
 }
 
-function saveSettings(e) { ['lvlBelt','lvlSpeed','lvlAlchemy','lvlFuel','lvlFert', 'lvlSell', 'lvlContract'].forEach(k => { DB.settings[k] = parseInt(document.getElementById(k).value) || 0; }); persist(); }
+function saveSettings(e) { ['lvlBelt','lvlSpeed','lvlAlchemy','lvlFuel','lvlFert', 'lvlSell', 'lvlContract'].forEach(k => { DB.settings[k] = parseInt(document.getElementById(k).value) || 0; }); persist(); refreshFuelFertLabels(); if (typeof renderPlannerToolbarSupplySelects === 'function') renderPlannerToolbarSupplySelects(); }
 
 function toggleControlMode(shouldCalculate = false) {
     const isMachineMode = document.getElementById('machineModeToggle').checked;    

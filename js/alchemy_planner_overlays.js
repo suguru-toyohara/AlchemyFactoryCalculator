@@ -672,12 +672,14 @@ function renderPlannerToolbarSupplySelects() {
     if (!heat || !fuel || !fert) return;
     heat.innerHTML = Object.entries(DB.machines).filter(([, d]) => d.isGenerator)
         .map(([name]) => `<option value="${name}">${t(name, 'machines')}</option>`).join('');
-    fuel.innerHTML = plannerGetFuelOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value} P)</option>`).join('');
-    fert.innerHTML = plannerGetFertOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value} V)</option>`).join('');
+    fuel.innerHTML = plannerGetFuelOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value.toLocaleString()} ${o.unit})</option>`).join('');
+    fert.innerHTML = plannerGetFertOptions().map(o => `<option value="${_escapeHtml(o.name)}">${_escapeHtml(o.name)} (${o.value.toLocaleString()} ${o.unit})</option>`).join('');
     heat.value = DB.settings.selectedHeatingDevice || "Stone Furnace";
     fuel.value = DB.settings.defaultFuel;
     fert.value = DB.settings.defaultFert;
-    heat.title = t('Heating Device'); fuel.title = t('Fuel Source'); fert.title = t('Fertilizer Source');
+    heat.title = t('Heating Device');
+    fuel.title = `${t('Fuel Source')} — ${t('Fuel Efficiency')} Lv${DB.settings.lvlFuel || 0}`;
+    fert.title = `${t('Fertilizer Source')} — ${t('Fert Efficiency')} Lv${DB.settings.lvlFert || 0}`;
 }
 
 function onPlannerToolbarSupplyChange() {

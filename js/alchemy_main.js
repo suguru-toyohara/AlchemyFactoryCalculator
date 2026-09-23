@@ -213,6 +213,24 @@ function loadSettingsToUI() {
     }
 }
 
+/** Option labels show the EFFECTIVE value per item (after the Fuel / Fertilizer Efficiency upgrade, +10%/level),
+ *  which is what the calculation uses. Called again whenever the upgrade levels change. */
+function refreshFuelFertLabels() {
+    const fuelMult = 1 + (DB.settings.lvlFuel || 0) * 0.10;
+    const fertMult = 1 + (DB.settings.lvlFert || 0) * 0.10;
+    document.querySelectorAll('#fuelSelect option').forEach(o => {
+        const d = DB.items[o.value] || {};
+        o.text = `${o.value} (${Math.round((d.heat || 0) * fuelMult).toLocaleString()} P)`;
+    });
+    document.querySelectorAll('#fertSelect option').forEach(o => {
+        const d = DB.items[o.value] || {};
+        o.text = `${o.value} (${Math.round((d.nutrientValue || 0) * fertMult).toLocaleString()} V)`;
+    });
+    const fuelSel = document.getElementById('fuelSelect'), fertSel = document.getElementById('fertSelect');
+    if (fuelSel) fuelSel.title = `${t('Fuel Efficiency')} Lv${DB.settings.lvlFuel || 0}`;
+    if (fertSel) fertSel.title = `${t('Fert Efficiency')} Lv${DB.settings.lvlFert || 0}`;
+}
+
 function populateSelects() {
     const fuelSel = document.getElementById('fuelSelect'); const fertSel = document.getElementById('fertSelect'); const heatingSel = document.getElementById('heatingDeviceSelect');
     fuelSel.innerHTML = ''; fertSel.innerHTML = ''; heatingSel.innerHTML = '';
@@ -226,8 +244,9 @@ function populateSelects() {
         if(itemDef.nutrientValue) ferts.push({ name: itemName, val: itemDef.nutrientValue });
     });
 
-    fuels.sort((a,b) => b.heat - a.heat).forEach(f => { fuelSel.appendChild(new Option(`${f.name} (${f.heat} P)`, f.name)); });
-    ferts.sort((a,b) => b.val - a.val).forEach(f => { fertSel.appendChild(new Option(`${f.name} (${f.val} V)`, f.name)); });
+    fuels.sort((a,b) => b.heat - a.heat).forEach(f => { fuelSel.appendChild(new Option('', f.name)); });
+    ferts.sort((a,b) => b.val - a.val).forEach(f => { fertSel.appendChild(new Option('', f.name)); });
+    refreshFuelFertLabels();
     Object.entries(DB.machines || {})
         .filter(([, machine]) => machine.isGenerator)
         .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
