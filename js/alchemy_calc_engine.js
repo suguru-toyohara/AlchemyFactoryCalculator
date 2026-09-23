@@ -292,12 +292,12 @@
         sources.push(source);
     }
 
-    /** Factory Efficiency speed multiplier as it applies to a recipe.
-     *  Seed Plots grow at a fixed rate. Nurseries are limited by the fertilizer's max fertility (V/s), a hard cap
-     *  that upgrades don't raise, so their batch time (nutrientCost / maxFertility) is not sped up either. */
+    /** Factory Efficiency speed multiplier as it applies to a recipe. Seed Plots grow at a fixed rate.
+     *  Nurseries DO get the multiplier on top of the fertility-limited batch time (nutrientCost / maxFertility):
+     *  verified in-game 2026-09-23 — Lavender (2160 V) on Advanced Fertilizer (144 V/s) at Factory Efficiency Lv12
+     *  yields 16/min = 4/min × 4.0. The Fertilizer Efficiency upgrade raises nutrient value only, not max fertility. */
     function getRecipeSpeedMult(recipe, speedMult) {
         if (recipe.machine === 'Seed Plot') return 1;
-        if (recipe.machine === 'Nursery' && (recipe.nutrientCost || 0) > 0) return 1;
         return speedMult;
     }
 
