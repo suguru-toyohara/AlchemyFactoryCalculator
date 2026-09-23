@@ -126,12 +126,18 @@ function plannerGetNodeFert(node) {
     return (own && DB.items[own]?.nutrientValue) ? own : DB.settings.defaultFert;
 }
 
-/** Selectable fuels / fertilizers, sorted by value (same lists as the Calculator's Logistics panel) */
+/** Selectable fuels / fertilizers, sorted by value (same lists as the Calculator's Logistics panel).
+ *  `value` is the effective per-item value after the Fuel / Fertilizer Efficiency upgrade (+10% per level),
+ *  i.e. what the rate calculation actually uses; `base` is the raw DB value. */
 function plannerGetFuelOptions() {
-    return Object.entries(DB.items).filter(([, d]) => d.heat).sort((a, b) => b[1].heat - a[1].heat).map(([name, d]) => ({ name, value: d.heat, unit: 'P' }));
+    const mult = 1 + (DB.settings.lvlFuel || 0) * 0.10;
+    return Object.entries(DB.items).filter(([, d]) => d.heat).sort((a, b) => b[1].heat - a[1].heat)
+        .map(([name, d]) => ({ name, base: d.heat, value: Math.round(d.heat * mult), unit: 'P' }));
 }
 function plannerGetFertOptions() {
-    return Object.entries(DB.items).filter(([, d]) => d.nutrientValue).sort((a, b) => b[1].nutrientValue - a[1].nutrientValue).map(([name, d]) => ({ name, value: d.nutrientValue, unit: 'V' }));
+    const mult = 1 + (DB.settings.lvlFert || 0) * 0.10;
+    return Object.entries(DB.items).filter(([, d]) => d.nutrientValue).sort((a, b) => b[1].nutrientValue - a[1].nutrientValue)
+        .map(([name, d]) => ({ name, base: d.nutrientValue, value: Math.round(d.nutrientValue * mult), unit: 'V' }));
 }
 
 /** Add a dock demand as an input port. If the item is already a recipe input, the rates merge into that side port. */
